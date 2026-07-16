@@ -3,17 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OHM PAT Manager v9</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<title>PAT Test | DeepFlow Software</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2322c55e'/%3E%3Cstop offset='1' stop-color='%2315803d'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='31' font-family='Arial, Helvetica, sans-serif' font-weight='800' font-size='24' letter-spacing='1.5' fill='%23ffffff' text-anchor='middle'%3EPAT%3C/text%3E%3Cline x1='14' y1='38' x2='50' y2='38' stroke='%23ffffff' stroke-opacity='.35' stroke-width='1'/%3E%3Ctext x='32' y='51' font-family='Arial, Helvetica, sans-serif' font-weight='800' font-size='12' letter-spacing='.3' text-anchor='middle'%3E%3Ctspan fill='%23fde047'%3EDeep%3C/tspan%3E%3Ctspan fill='%23ffffff'%3E Flow%3C/tspan%3E%3C/text%3E%3C/svg%3E">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
 /* ═══════════════════════════════════════════════
-   OHM PAT MANAGER v9 — DARK INDUSTRIAL UI
+   OHM PAT MANAGER v9.5 — CLEAN UI
 ═══════════════════════════════════════════════ */
 :root{
   --bg:#f1f5f9;--s1:#ffffff;--s2:#f8fafc;--s3:#f1f5f9;--s4:#e2e8f0;
@@ -24,11 +27,11 @@
   --amber:#d97706;--amber2:#b45309;--amber-dim:rgba(217,119,6,.1);
   --purple:#7c3aed;--purple2:#6d28d9;--cyan:#0891b2;--cyan2:#0e7490;
   --txt:#0f172a;--txt2:#475569;--txt3:#94a3b8;
-  --font:'DM Sans',sans-serif;--display:'Syne',sans-serif;--mono:'DM Mono',monospace;
+  --font:'Inter',sans-serif;--display:'Inter',sans-serif;--mono:'Inter',sans-serif;
   --r:10px;--rsm:7px;--rlg:14px;--sw:262px;
   --sh:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
   --shg:0 10px 35px rgba(15,23,42,.11),0 4px 12px rgba(15,23,42,.05);
-  --grad:linear-gradient(135deg,#2563eb,#7c3aed);
+  --grad:var(--accent);
 }
 body.dark-theme{
   --bg:#0a0c10;--s1:#0f1117;--s2:#141720;--s3:#1a1f2c;--s4:#212736;
@@ -54,37 +57,84 @@ body{font-family:var(--font);background:var(--bg);color:var(--txt);display:flex;
 #offline-banner.show{display:block;}
 
 /* NOTICE BAR */
-.notice-bar{display:none;background:linear-gradient(90deg,rgba(139,92,246,.18),rgba(59,130,246,.18));border-bottom:1px solid rgba(139,92,246,.3);padding:10px 24px;align-items:center;gap:14px;font-size:.86rem;flex-shrink:0;}
+.notice-bar{display:none;background:rgba(124,58,237,.07);border-bottom:1px solid rgba(124,58,237,.2);padding:10px 24px;align-items:center;gap:14px;font-size:.86rem;flex-shrink:0;}
 .notice-bar.show{display:flex;}
 .notice-bar h4{color:var(--purple2);font-size:.88rem;font-weight:700;}
 
 /* ─── AUTH ─── */
-#auth-screen{position:fixed;inset:0;z-index:600;background:radial-gradient(ellipse at 25% 15%,rgba(59,130,246,.1) 0%,transparent 55%),radial-gradient(ellipse at 80% 85%,rgba(124,58,237,.08) 0%,transparent 50%),var(--bg);display:flex;align-items:center;justify-content:center;overflow-y:auto;transition:opacity .4s;}
+#auth-screen{position:fixed;inset:0;z-index:600;background:var(--bg);display:flex;overflow-y:auto;transition:opacity .4s;}
 #auth-screen.gone{opacity:0;pointer-events:none;}
-.auth-wrap{width:420px;max-width:94vw;padding:24px 0;}
-.auth-brand{text-align:center;margin-bottom:32px;}
-.auth-logo{display:inline-flex;align-items:center;gap:13px;margin-bottom:10px;}
-.auth-icon{width:52px;height:52px;background:var(--grad);border-radius:14px;display:flex;align-items:center;justify-content:center;color:white;font-size:1.5rem;box-shadow:0 0 30px var(--accent-glow);}
-.auth-name{font-family:var(--display);font-size:1.9rem;font-weight:800;letter-spacing:-1px;}
-.auth-name span{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.auth-sub{color:var(--txt2);font-size:.9rem;}
-.auth-card{background:var(--s1);border:1px solid var(--b2);border-radius:var(--rlg);padding:36px;box-shadow:var(--shg);}
-.auth-tabs{display:flex;background:var(--s2);border-radius:var(--rsm);padding:3px;margin-bottom:26px;}
-.auth-tab{flex:1;padding:10px;text-align:center;border-radius:6px;font-size:.9rem;font-weight:600;cursor:pointer;color:var(--txt2);transition:all .2s;}
+
+/* ─── LEFT: DeepFlow hero panel (particle network background) ─── */
+.auth-right{flex:1;min-width:0;background:linear-gradient(160deg,#0b1220 0%,#0f1b30 100%);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:60px;}
+.auth-right canvas{position:absolute;inset:0;width:100%;height:100%;}
+.auth-right-inner{position:relative;z-index:2;max-width:620px;}
+/* Two-word "Deep Flow" wordmark — restrained weight and tracking reads more professional
+   than a single squashed all-caps word, with each word carrying its own tone. */
+.df-wordmark{font-family:'JetBrains Mono',monospace;font-size:2.6rem;font-weight:700;letter-spacing:.5px;line-height:1.1;margin-bottom:10px;}
+.df-w1{color:#e2e8f0;}
+.df-w2{background:linear-gradient(90deg,#60a5fa 0%,#fbbf24 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.df-badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;background:#fbf010;padding:3px 10px;border-radius:20px;margin-bottom:14px;}
+.df-tagline{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:16px;}
+.df-desc{font-family:'JetBrains Mono',monospace;font-size:.92rem;color:rgba(255,255,255,.6);line-height:1.6;margin-bottom:32px;max-width:480px;}
+.df-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;margin-bottom:12px;}
+.df-card{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:14px 15px;backdrop-filter:blur(2px);}
+.df-card.live{background:rgba(251,240,16,.07);border-color:rgba(251,240,16,.35);}
+@keyframes df-pulse-glow{0%,100%{filter:drop-shadow(0 0 2px currentColor);opacity:.85;}50%{filter:drop-shadow(0 0 8px currentColor);opacity:1;}}
+@keyframes df-flicker{0%,100%{transform:scale(1) rotate(0deg);opacity:.9;}25%{transform:scale(1.06) rotate(-2deg);opacity:1;}50%{transform:scale(.97) rotate(1deg);opacity:.85;}75%{transform:scale(1.03) rotate(-1deg);opacity:1;}}
+@keyframes df-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
+@keyframes df-dash{to{stroke-dashoffset:-24;}}
+.df-card-ico{font-size:1.15rem;margin-bottom:8px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;}
+.df-card-ico svg{width:100%;height:100%;overflow:visible;}
+.ico-pulse{animation:df-pulse-glow 2.2s ease-in-out infinite;}
+.ico-flicker{animation:df-flicker 1.8s ease-in-out infinite;transform-origin:center bottom;}
+.ico-float{animation:df-float 3s ease-in-out infinite;}
+.ico-flow{stroke-dasharray:6 4;animation:df-dash 1.2s linear infinite;}
+.df-card h4{font-family:'JetBrains Mono',monospace;font-size:.8rem;font-weight:700;color:#fff;margin-bottom:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.df-tag{font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:2px 7px;border-radius:20px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);}
+.df-tag.live{background:#fbf010;color:#0f172a;}
+.df-card p{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:rgba(255,255,255,.5);line-height:1.5;}
+.df-card.wide{grid-column:1/-1;display:flex;align-items:flex-start;gap:14px;}
+.df-card.wide .df-card-ico{margin-bottom:0;margin-top:2px;}
+.df-footer{margin-top:26px;font-family:'JetBrains Mono',monospace;font-size:.68rem;color:rgba(255,255,255,.3);}
+.df-footer b{color:rgba(255,255,255,.5);}
+@media(max-width:900px){.auth-right{display:none;}}
+
+/* ─── RIGHT: login card (monospace, matches DeepFlow style) ─── */
+.auth-left{width:480px;max-width:100%;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:40px 44px;background:var(--s1);}
+.auth-wrap{width:100%;max-width:360px;}
+.auth-brand{margin-bottom:28px;}
+.auth-logo{display:flex;align-items:center;gap:13px;margin-bottom:10px;}
+.auth-icon{width:44px;height:44px;background:var(--accent);border-radius:11px;display:flex;align-items:center;justify-content:center;color:white;font-size:1.2rem;flex-shrink:0;}
+.auth-name{font-size:1.4rem;font-weight:700;letter-spacing:-.3px;}
+.auth-name span{color:var(--accent);}
+.auth-sub{color:var(--txt2);font-size:.86rem;font-family:'JetBrains Mono',monospace;}
+.auth-card{}
+.auth-welcome{font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--txt);margin-bottom:4px;}
+.auth-welcome-sub{color:var(--txt2);font-size:.88rem;margin-bottom:26px;}
+.auth-tabs{display:flex;background:var(--s2);border-radius:var(--rsm);padding:3px;margin-bottom:22px;}
+.auth-tab{flex:1;padding:10px;text-align:center;border-radius:6px;font-size:.86rem;font-weight:600;cursor:pointer;color:var(--txt2);transition:all .2s;font-family:'JetBrains Mono',monospace;}
 .auth-tab.on{background:var(--s1);color:var(--txt);box-shadow:0 1px 5px rgba(0,0,0,.15);}
 .auth-panel{display:none;}.auth-panel.on{display:block;}
+.auth-panel label{font-family:'JetBrains Mono',monospace;letter-spacing:1px;}
 .auth-err{background:var(--red-dim);border:1px solid rgba(239,68,68,.3);color:var(--red2);padding:11px 14px;border-radius:var(--rsm);font-size:.88rem;margin-bottom:14px;display:none;}
 .auth-err.on{display:block;}
-.auth-demo{margin-top:14px;text-align:center;font-size:.78rem;color:var(--txt3);background:var(--s2);border-radius:var(--rsm);padding:10px;}
+.auth-pw-wrap{position:relative;}
+.auth-pw-wrap input{padding-right:40px;}
+.auth-pw-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--txt3);background:none;border:none;font-size:.95rem;padding:4px;}
+.auth-forgot{display:block;text-align:right;font-size:.8rem;color:var(--accent);margin-top:-12px;margin-bottom:18px;cursor:pointer;}
+.auth-divider{display:flex;align-items:center;gap:10px;margin:22px 0 16px;font-family:'JetBrains Mono',monospace;font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt3);}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--b2);}
+.auth-demo{text-align:center;font-size:.78rem;color:var(--txt3);line-height:1.6;}
 
 /* ─── SIDEBAR ─── */
 #sidebar{width:var(--sw);flex-shrink:0;background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;height:100vh;overflow-y:auto;overflow-x:hidden;position:relative;z-index:100;transition:width .25s;}
 .sb-header{padding:18px 16px 14px;border-bottom:1px solid var(--b1);flex-shrink:0;}
 .sb-brand{display:flex;align-items:center;gap:11px;margin-bottom:10px;}
-.sb-icon{width:36px;height:36px;background:var(--grad);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;flex-shrink:0;box-shadow:0 0 14px var(--accent-glow);}
-.sb-name{font-family:var(--display);font-size:1rem;font-weight:800;letter-spacing:-.4px;}
-.sb-name span{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.sb-ver{font-size:.65rem;color:var(--txt3);font-family:var(--mono);margin-top:1px;letter-spacing:.5px;}
+.sb-icon{width:36px;height:36px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;color:white;font-size:1rem;flex-shrink:0;}
+.sb-name{font-size:1rem;font-weight:700;letter-spacing:-.2px;}
+.sb-name span{color:var(--accent);}
+.sb-ver{font-size:.68rem;color:var(--txt3);margin-top:1px;}
 .sb-sync{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--txt2);}
 .sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:all .3s;}
 .sdot.ok{background:var(--green);box-shadow:0 0 6px var(--green);}
@@ -92,11 +142,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--txt);display:flex;
 .sdot.err{background:var(--red);box-shadow:0 0 6px var(--red);}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(1.5);}}
 .sb-user{padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--b1);overflow:hidden;flex-shrink:0;}
-.sb-av{width:32px;height:32px;border-radius:50%;flex-shrink:0;background:var(--grad);color:white;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:700;}
+.sb-av{width:32px;height:32px;border-radius:50%;flex-shrink:0;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:700;}
 .sb-info{min-width:0;overflow:hidden;}
 .sb-email{font-size:.76rem;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.sb-role{font-size:.65rem;color:var(--accent2);text-transform:uppercase;letter-spacing:.6px;margin-top:1px;font-family:var(--mono);}
-.sb-sec{padding:14px 15px 4px;font-size:.63rem;color:var(--txt3);text-transform:uppercase;letter-spacing:2px;font-weight:700;white-space:nowrap;overflow:hidden;flex-shrink:0;font-family:var(--mono);}
+.sb-role{font-size:.7rem;color:var(--accent2);text-transform:capitalize;margin-top:1px;font-weight:600;}
+.sb-sec{padding:14px 16px 5px;font-size:.68rem;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px;font-weight:600;white-space:nowrap;overflow:hidden;flex-shrink:0;}
 .ni{display:flex;align-items:center;gap:10px;padding:9px 10px;margin:2px 8px;border-radius:var(--rsm);cursor:pointer;font-size:.88rem;color:var(--txt2);transition:all .15s;border:1px solid transparent;white-space:nowrap;overflow:hidden;position:relative;flex-shrink:0;}
 .ni:hover{background:var(--s3);color:var(--txt);}
 .ni.on{background:rgba(37,99,235,.08);border-color:rgba(37,99,235,.16);color:var(--accent);font-weight:600;}
@@ -115,7 +165,7 @@ body.dark-theme .ni.on .nico{color:#60a5fa;}
 #main{flex:1;display:flex;flex-direction:column;min-width:0;height:100vh;overflow:hidden;}
 .ph{padding:14px 28px;border-bottom:1px solid var(--b1);background:var(--s1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;flex-wrap:wrap;gap:10px;}
 .ph-left{}
-.ph-title{font-family:var(--display);font-size:1.1rem;font-weight:700;letter-spacing:-.3px;color:var(--txt);}
+.ph-title{font-size:1.08rem;font-weight:700;color:var(--txt);}
 .ph-sub{font-size:.78rem;color:var(--txt3);margin-top:2px;font-weight:400;}
 .ph-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
 .pb{flex:1;overflow-y:auto;overflow-x:hidden;padding:24px 28px 48px;}
@@ -131,7 +181,7 @@ body.dark-theme .ni.on .nico{color:#60a5fa;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 
 /* ─── PAT SIDE PANEL WIDGETS ─── */
-.sw-title{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1.8px;color:var(--txt3);font-family:var(--mono);margin:0 0 10px;padding-bottom:8px;border-bottom:1px solid var(--b1);}
+.sw-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin:0 0 10px;padding-bottom:8px;border-bottom:1px solid var(--b1);}
 .sw-card{background:var(--s1);border:1px solid var(--b2);border-radius:var(--r);padding:14px;margin-bottom:10px;box-shadow:var(--sh);}
 .sw-card+.sw-card{margin-top:0;}
 .sw-kv{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--b1);}
@@ -142,8 +192,8 @@ body.dark-theme .ni.on .nico{color:#60a5fa;}
 .sw-v.red{color:var(--red);}
 .sw-v.amber{color:var(--amber);}
 .sw-big{text-align:center;padding:10px 0 6px;}
-.sw-big-num{font-family:var(--display);font-size:2.4rem;font-weight:800;letter-spacing:-2px;line-height:1;}
-.sw-big-lbl{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--txt3);margin-top:4px;font-family:var(--mono);}
+.sw-big-num{font-size:2.2rem;font-weight:700;letter-spacing:-1px;line-height:1;}
+.sw-big-lbl{font-size:.72rem;font-weight:500;color:var(--txt2);margin-top:4px;}
 .sw-ring-wrap{display:flex;justify-content:center;padding:8px 0 4px;}
 .sw-donut{transform:rotate(-90deg);}
 .sw-donut circle{transition:stroke-dashoffset .5s ease;}
@@ -165,7 +215,7 @@ body.dark-theme .ni.on .nico{color:#60a5fa;}
 .card{background:var(--s1);border:1px solid var(--b2);border-radius:var(--r);padding:20px;box-shadow:var(--sh);}
 .card+.card{margin-top:12px;}
 .card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.card-title{font-family:var(--display);font-size:.9rem;font-weight:700;letter-spacing:-.2px;color:var(--txt);}
+.card-title{font-size:.95rem;font-weight:700;color:var(--txt);}
 .ct{border-top:2px solid var(--accent);}
 .ctg{border-top:2px solid var(--green);}
 .ctr{border-top:2px solid var(--red);}
@@ -183,9 +233,9 @@ body.dark-theme .ni.on .nico{color:#60a5fa;}
 .sc.am::before{background:var(--amber);}
 .sc.pu::before{background:var(--purple);}
 .sc.cy::before{background:var(--cyan);}
-.sc-ico{font-size:.92rem;margin-bottom:8px;opacity:.6;}
-.sc-val{font-family:var(--display);font-size:1.7rem;font-weight:800;letter-spacing:-1px;line-height:1;color:var(--txt);}
-.sc-lbl{font-size:.65rem;color:var(--txt3);text-transform:uppercase;letter-spacing:1.2px;margin-top:5px;font-weight:700;font-family:var(--mono);}
+.sc-ico{font-size:.95rem;margin-bottom:8px;color:var(--txt3);}
+.sc-val{font-size:1.65rem;font-weight:700;letter-spacing:-.5px;line-height:1;color:var(--txt);}
+.sc-lbl{font-size:.74rem;color:var(--txt2);margin-top:5px;font-weight:500;}
 .sc-trend{font-size:.72rem;margin-top:5px;color:var(--txt2);}
 
 /* ─── GRIDS ─── */
@@ -196,7 +246,7 @@ body.dark-theme .ni.on .nico{color:#60a5fa;}
 
 /* ─── FORMS ─── */
 .fg{display:flex;flex-direction:column;gap:5px;}
-label{font-size:.68rem;color:var(--txt3);font-weight:700;letter-spacing:.8px;text-transform:uppercase;font-family:var(--mono);}
+label{font-size:.78rem;color:var(--txt2);font-weight:600;}
 input,select,textarea{width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rsm);font-size:.875rem;color:var(--txt);font-family:var(--font);transition:border-color .15s,box-shadow .15s;outline:none;-webkit-appearance:none;line-height:1.4;}
 input:focus,select:focus,textarea:focus{border-color:var(--accent);background:var(--s1);box-shadow:0 0 0 3px var(--accent-glow);}
 input:hover:not(:focus),select:hover:not(:focus),textarea:hover:not(:focus){border-color:var(--b3);}
@@ -232,16 +282,15 @@ input[type="checkbox"]{width:15px;height:15px;padding:0;cursor:pointer;accent-co
 .sw-slider::before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:var(--txt2);left:2px;top:2px;transition:all .25s;}
 .sw input:checked+.sw-slider{background:var(--accent);}
 .sw input:checked+.sw-slider::before{transform:translateX(18px);background:white;}
-.toggle-section{margin-bottom:8px;padding:8px 16px 4px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--txt3);font-family:var(--mono);}
+.toggle-section{margin-bottom:8px;padding:8px 16px 4px;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);}
 
 /* ─── BUTTONS ─── */
 .btn{padding:8px 14px;border-radius:var(--rsm);font-size:.82rem;font-weight:600;font-family:var(--font);cursor:pointer;border:1px solid transparent;transition:all .15s;display:inline-flex;align-items:center;gap:5px;text-decoration:none;white-space:nowrap;letter-spacing:.1px;line-height:1.3;}
-.btn:hover{transform:translateY(-1px);}
-.btn:active{transform:translateY(0) scale(.98);}
+.btn:active{transform:scale(.98);}
 .btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important;}
-.btn-primary{background:var(--accent);color:white;box-shadow:0 1px 8px rgba(37,99,235,.28);}
-.btn-primary:hover{background:var(--accent2);box-shadow:0 3px 14px rgba(37,99,235,.38);}
-.btn-success{background:var(--green);color:white;box-shadow:0 1px 8px rgba(22,163,74,.22);}
+.btn-primary{background:var(--accent);color:white;}
+.btn-primary:hover{background:var(--accent2);}
+.btn-success{background:var(--green);color:white;}
 .btn-success:hover{background:var(--green2);}
 .btn-danger{background:var(--red);color:white;}
 .btn-danger:hover{background:var(--red2);}
@@ -261,7 +310,7 @@ input[type="checkbox"]{width:15px;height:15px;padding:0;cursor:pointer;accent-co
 /* ─── TABLES ─── */
 .tw{overflow-x:auto;border-radius:var(--rsm);}
 table{width:100%;border-collapse:collapse;}
-th{padding:10px 13px;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--txt2);font-weight:700;background:var(--s2);border-bottom:2px solid var(--b2);white-space:nowrap;font-family:var(--mono);}
+th{padding:10px 13px;text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;color:var(--txt2);font-weight:600;background:var(--s2);border-bottom:2px solid var(--b2);white-space:nowrap;}
 td{padding:11px 13px;font-size:.87rem;border-bottom:1px solid var(--b1);color:var(--txt);transition:background .1s;}
 tbody tr:hover td{background:rgba(37,99,235,.04);}
 body.dark-theme tbody tr:hover td{background:rgba(59,130,246,.06);}
@@ -307,10 +356,10 @@ body.dark-theme .as_{background:var(--green-dim);border-color:rgba(34,197,94,.22
 /* ─── PROGRESS ─── */
 .pbar{background:var(--s3);border-radius:4px;height:5px;overflow:hidden;}
 .pbar-f{height:100%;border-radius:4px;background:var(--grad);transition:width .5s;}
-.pbar-f.gr{background:linear-gradient(90deg,var(--green),var(--green2));}
+.pbar-f.gr{background:var(--green);}
 
 /* ─── SECTION LABEL ─── */
-.slbl{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--txt3);margin:20px 0 12px;display:flex;align-items:center;gap:10px;font-family:var(--mono);}
+.slbl{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin:20px 0 12px;display:flex;align-items:center;gap:10px;}
 .slbl::after{content:'';flex:1;height:1px;background:var(--b2);}
 
 /* ─── TOASTS ─── */
@@ -339,7 +388,7 @@ body.dark-theme .as_{background:var(--green-dim);border-color:rgba(34,197,94,.22
 
 /* ─── CERTIFICATE A4 ─── */
 .cert-scroll{display:flex;flex-direction:column;gap:18px;}
-.prev-label{font-size:.68rem;color:var(--txt3);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;font-family:var(--mono);}
+.prev-label{font-size:.72rem;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:10px;}
 .a4{background:white;width:210mm;height:297mm;padding:12mm 16mm 14mm;box-sizing:border-box;display:flex;flex-direction:column;box-shadow:0 2px 16px rgba(15,23,42,.14),0 8px 30px rgba(15,23,42,.08);border-radius:4px;font-size:var(--fbase,0.7rem);color:#0f172a;position:relative;overflow:hidden;}
 .a4.draft-wm::before{content:'DRAFT';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:110px;font-weight:900;color:rgba(0,0,0,.04);pointer-events:none;white-space:nowrap;font-family:'DM Sans',sans-serif;}
 .a4-topbar{background:#f1f5f9;padding:5px 12px;border-radius:4px;display:flex;justify-content:space-between;font-size:.8rem;font-weight:700;color:#1e293b;margin-bottom:10px;}
@@ -408,7 +457,7 @@ body.dark-theme .as_{background:var(--green-dim);border-color:rgba(34,197,94,.22
 .notice-card p{font-size:.88rem;color:var(--txt2);line-height:1.5;}
 
 /* ─── QUICK DRAFT BANNER ─── */
-.qc-draft{background:linear-gradient(90deg,rgba(245,158,11,.12),rgba(245,158,11,.06));border:1px solid rgba(245,158,11,.25);border-radius:var(--r);padding:14px 18px;margin-bottom:16px;display:none;align-items:center;gap:12px;}
+.qc-draft{background:rgba(217,119,6,.07);border:1px solid rgba(245,158,11,.25);border-radius:var(--r);padding:14px 18px;margin-bottom:16px;display:none;align-items:center;gap:12px;}
 .qc-draft.show{display:flex;}
 
 /* ─── SEARCH HIGHLIGHT ─── */
@@ -438,7 +487,6 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
   #print-target .a4-val,
   #print-target .a4t th,
   #print-target .a4t td{font-family:'DM Sans',Arial,sans-serif!important;}
-  #print-target .a4-box>div:last-child{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:8px!important;white-space:nowrap!important;}
   #print-target .cbadge{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   #print-target .a4t th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   @page{margin:0;size:210mm 297mm portrait;}
@@ -455,7 +503,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
 /* ─── FIREBASE USAGE DASHBOARD ─── */
 .fb-usage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-bottom:16px;}
 .fb-meter{background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);padding:16px;}
-.fb-meter-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:var(--txt3);font-family:var(--mono);margin-bottom:8px;}
+.fb-meter-title{font-size:.74rem;text-transform:uppercase;letter-spacing:.4px;color:var(--txt3);font-weight:600;margin-bottom:8px;}
 .fb-meter-val{font-size:1.5rem;font-weight:800;margin-bottom:2px;color:var(--txt);font-family:var(--mono);}
 .fb-meter-limit{font-size:.78rem;color:var(--txt2);margin-bottom:8px;}
 .fb-bar{height:7px;background:var(--b2);border-radius:4px;overflow:hidden;margin-bottom:4px;}
@@ -489,33 +537,95 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
 
 <!-- AUTH SCREEN -->
 <div id="auth-screen">
+  <div class="auth-right">
+    <canvas id="auth-particles"></canvas>
+    <div class="auth-right-inner">
+      <div class="df-badge">Software Suite &middot; Launching Soon</div>
+      <div class="df-wordmark"><span class="df-w1">Deep</span> <span class="df-w2">Flow</span></div>
+      <div class="df-tagline">Property Compliance &amp; Job Management</div>
+      <div class="df-desc">One suite for every certificate your business issues &mdash; PAT, EICR, Fire Alarm, Emergency Lighting and Gas Safety &mdash; plus job management, all under one roof.</div>
+      <div class="df-grid">
+        <div class="df-card live">
+          <div class="df-card-ico ico-pulse" style="color:#fbf010;"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></div>
+          <h4>PAT Test <span class="df-tag live">Live</span></h4>
+          <p>Portable appliance testing, renewals &amp; handwriting scan</p>
+        </div>
+        <div class="df-card">
+          <div class="df-card-ico ico-float" style="color:#93c5fd;"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6z"/></svg></div>
+          <h4>Job Management <span class="df-tag">Coming Soon</span></h4>
+          <p>Schedule, track and manage every job from one view</p>
+        </div>
+        <div class="df-card">
+          <div class="df-card-ico" style="color:#60a5fa;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0V8z" fill="rgba(96,165,250,.15)"/><path class="ico-flow" d="M12 18v4"/></svg></div>
+          <h4>EICR <span class="df-tag">Coming Soon</span></h4>
+          <p>Electrical installation condition reports</p>
+        </div>
+        <div class="df-card">
+          <div class="df-card-ico ico-flicker" style="color:#fb923c;"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3-3 4-3 8a3 3 0 0 0 6 0c0-1-1-2-1-2 2 1 3 3 3 5a5 5 0 0 1-10 0c0-5 3-7 5-11z"/></svg></div>
+          <h4>Fire Alarm <span class="df-tag">Coming Soon</span></h4>
+          <p>Fire alarm system testing &amp; certification</p>
+        </div>
+        <div class="df-card">
+          <div class="df-card-ico ico-pulse" style="color:#7dd3fc;"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 21h6v-1H9v1zm3-19a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2.3h6c0-1.1.4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></div>
+          <h4>Emergency Lighting <span class="df-tag">Coming Soon</span></h4>
+          <p>Emergency light testing &amp; compliance records</p>
+        </div>
+        <div class="df-card">
+          <div class="df-card-ico ico-flicker" style="color:#38bdf8;"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3-3 4-3 8a3 3 0 0 0 6 0c0-1-1-2-1-2 2 1 3 3 3 5a5 5 0 0 1-10 0c0-5 3-7 5-11z"/></svg></div>
+          <h4>Gas Safety <span class="df-tag">Coming Soon</span></h4>
+          <p>Gas safety certificates &amp; appliance checks</p>
+        </div>
+      </div>
+      <div class="df-footer">Powered by <b>Deep Flow</b> &middot; one suite, every certificate</div>
+      <div class="df-footer" style="margin-top:6px;">Issues or feedback? Email with screenshots: <a href="mailto:mandeepnain222@gmail.com" style="color:rgba(255,255,255,.5);">mandeepnain222@gmail.com</a></div>
+    </div>
+  </div>
+  <div class="auth-left">
   <div class="auth-wrap">
     <div class="auth-brand">
       <div class="auth-logo">
-        <div class="auth-icon">⚡</div>
-        <div><div class="auth-name">OHM <span>PAT</span></div><div class="sb-ver">v9.4 — PAT Manager</div></div>
+        <div class="auth-icon"><i class="fa-solid fa-bolt"></i></div>
+        <div><div class="auth-name">DeepFlow <span>PAT</span></div><div class="auth-sub">Part of DeepFlow Software</div></div>
       </div>
-      <div class="auth-sub" style="margin-top:8px;">Portable Appliance Testing Management</div>
     </div>
     <div class="auth-card">
+      <div class="auth-welcome">Welcome back</div>
+      <div class="auth-welcome-sub">Sign in to your PAT dashboard</div>
       <div class="auth-tabs">
         <div class="auth-tab on" onclick="authTab('login')">Sign In</div>
         <div class="auth-tab" onclick="authTab('register')">Register</div>
       </div>
       <div class="auth-err" id="auth-err"></div>
       <div class="auth-panel on" id="ap-login">
-        <div class="fg" style="margin-bottom:14px;"><label>Email</label><input type="email" id="a-email" placeholder="engineer@company.com"></div>
-        <div class="fg" style="margin-bottom:20px;"><label>Password</label><input type="password" id="a-pw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
-        <button class="btn btn-primary btn-block btn-lg" onclick="doLogin()">Sign In →</button>
+        <form id="login-form" autocomplete="on" onsubmit="event.preventDefault();doLogin();">
+          <div class="fg" style="margin-bottom:14px;"><label>Email Address</label><input type="email" id="a-email" name="username" autocomplete="username" placeholder="you@company.com"></div>
+          <div class="fg" style="margin-bottom:6px;"><label>Password</label>
+            <div class="auth-pw-wrap">
+              <input type="password" id="a-pw" name="password" autocomplete="current-password" placeholder="Your password">
+              <button type="button" class="auth-pw-eye" onclick="togglePwVisibility('a-pw',this)"><i class="fa-solid fa-eye"></i></button>
+            </div>
+          </div>
+          <span class="auth-forgot" onclick="doForgotPassword()">Forgot password?</span>
+          <button type="submit" class="btn btn-primary btn-block btn-lg">Sign In →</button>
+        </form>
       </div>
       <div class="auth-panel" id="ap-register">
-        <div class="fg" style="margin-bottom:14px;"><label>Email</label><input type="email" id="a-remail" placeholder="engineer@company.com"></div>
-        <div class="fg" style="margin-bottom:14px;"><label>Password</label><input type="password" id="a-rpw" placeholder="Min 6 characters"></div>
-        <div class="fg" style="margin-bottom:20px;"><label>Confirm Password</label><input type="password" id="a-rpw2" placeholder="Repeat password"></div>
-        <button class="btn btn-primary btn-block btn-lg" onclick="doRegister()">Create Account →</button>
+        <form id="register-form" autocomplete="on" onsubmit="event.preventDefault();doRegister();">
+          <div class="fg" style="margin-bottom:14px;"><label>Email Address</label><input type="email" id="a-remail" name="username" autocomplete="username" placeholder="you@company.com"></div>
+          <div class="fg" style="margin-bottom:14px;"><label>Password</label>
+            <div class="auth-pw-wrap">
+              <input type="password" id="a-rpw" name="new-password" autocomplete="new-password" placeholder="Min 6 characters">
+              <button type="button" class="auth-pw-eye" onclick="togglePwVisibility('a-rpw',this)"><i class="fa-solid fa-eye"></i></button>
+            </div>
+          </div>
+          <div class="fg" style="margin-bottom:20px;"><label>Confirm Password</label><input type="password" id="a-rpw2" autocomplete="new-password" placeholder="Repeat password"></div>
+          <button type="submit" class="btn btn-primary btn-block btn-lg">Create Account →</button>
+        </form>
       </div>
+      <div class="auth-divider">Secure Access</div>
       <div class="auth-demo">Demo: any email + any password (6+ chars)</div>
     </div>
+  </div>
   </div>
 </div>
 
@@ -525,8 +635,8 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
     <div class="sb-brand">
       <div class="sb-icon">⚡</div>
       <div>
-        <div class="sb-name">OHM <span>PAT</span></div>
-        <div class="sb-ver">v9.4 — 2025</div>
+        <div class="sb-name">DeepFlow <span>PAT</span></div>
+        <div class="sb-ver">v9.10 — 2026</div>
       </div>
     </div>
     <div class="sb-sync"><div class="sdot ok" id="sdot"></div><span id="sync-lbl">Synced</span></div>
@@ -556,7 +666,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
       <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme" id="theme-toggle-btn" style="flex:1;">🌙</button>
       <button class="btn-icon" onclick="nav('settings')" title="Settings" style="flex:1;">⚙</button>
     </div>
-    <button class="sb-logout" onclick="doLogout()">⎋ &nbsp; Sign Out</button>
+    <button class="sb-logout" onclick="doLogout()"><i class="fa-solid fa-arrow-right-from-bracket"></i>&nbsp; Sign Out</button>
   </div>
 </div>
 
@@ -565,7 +675,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
 
   <!-- NOTICE BAR -->
   <div class="notice-bar" id="notice-bar">
-    <span style="font-size:1.1rem;">📢</span>
+    <i class="fa-solid fa-bullhorn" style="font-size:.95rem;color:var(--purple);"></i>
     <div><h4 id="notice-title"></h4><p id="notice-body" style="font-size:.82rem;color:var(--txt2);"></p></div>
     <span style="font-size:.74rem;color:var(--txt3);" id="notice-date"></span>
     <button class="btn-icon" onclick="dismissNotice()" style="margin-left:auto;">✕</button>
@@ -577,25 +687,32 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
       <div class="ph-left"><div class="ph-title">Dashboard</div><div class="ph-sub" id="dash-sub">Loading...</div></div>
       <div class="ph-acts">
         <div style="position:relative;">
-          <input type="text" id="dash-q" placeholder="🔍 Quick search..." style="width:220px;padding:8px 13px;font-size:.84rem;" oninput="quickSearch(this.value)">
+          <input type="text" id="dash-q" placeholder="Search reports..." style="width:220px;padding:8px 13px;font-size:.84rem;" oninput="quickSearch(this.value)">
         </div>
-        <button class="btn btn-primary btn-sm" onclick="nav('new-pat');initNewForm(true)">＋ New Test</button>
+        <button class="btn btn-primary btn-sm" onclick="nav('new-pat');initNewForm(true)"><i class="fa-solid fa-plus"></i> New Test</button>
       </div>
     </div>
     <div class="pb">
       <div class="sgrid" id="dash-stats">
-        <div class="sc bl"><div class="sc-ico">📋</div><div class="sc-val" id="ds-rep">—</div><div class="sc-lbl">Total Reports</div></div>
-        <div class="sc gr"><div class="sc-ico">✅</div><div class="sc-val" id="ds-pass">—</div><div class="sc-lbl">Pass Rate</div></div>
-        <div class="sc bl"><div class="sc-ico">🔌</div><div class="sc-val" id="ds-app">—</div><div class="sc-lbl">Appliances</div></div>
-        <div class="sc rd"><div class="sc-ico">⚠️</div><div class="sc-val" id="ds-exp">—</div><div class="sc-lbl">Expired</div></div>
-        <div class="sc am"><div class="sc-ico">🗓</div><div class="sc-val" id="ds-d30">—</div><div class="sc-lbl">Due 30 Days</div></div>
-        <div class="sc pu"><div class="sc-ico">👷</div><div class="sc-val" id="ds-eng" style="font-size:1rem;">—</div><div class="sc-lbl">Top Engineer</div></div>
+        <div class="sc bl"><div class="sc-ico"><i class="fa-solid fa-house"></i></div><div class="sc-val" id="ds-prop">—</div><div class="sc-lbl">Total Properties</div></div>
+        <div class="sc am"><div class="sc-ico"><i class="fa-solid fa-calendar-days"></i></div><div class="sc-val" id="ds-d30">—</div><div class="sc-lbl">Due 30 Days</div></div>
+        <div class="sc rd"><div class="sc-ico"><i class="fa-solid fa-triangle-exclamation"></i></div><div class="sc-val" id="ds-exp">—</div><div class="sc-lbl">Expired</div></div>
+        <div class="sc bl"><div class="sc-ico"><i class="fa-solid fa-file-lines"></i></div><div class="sc-val" id="ds-rep">—</div><div class="sc-lbl">Total Reports</div></div>
+        <div class="sc gr"><div class="sc-ico"><i class="fa-solid fa-circle-check"></i></div><div class="sc-val" id="ds-pass">—</div><div class="sc-lbl">Pass Rate</div></div>
+        <div class="sc pu"><div class="sc-ico"><i class="fa-solid fa-helmet-safety"></i></div><div class="sc-val" id="ds-eng" style="font-size:1rem;">—</div><div class="sc-lbl">Top Engineer</div></div>
       </div>
 
       <div id="dash-alerts"></div>
 
+      <div class="card" style="margin-bottom:18px;border-left:3px solid var(--accent);">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;font-size:.88rem;">
+          <i class="fa-solid fa-lightbulb" style="font-size:1rem;color:var(--accent);"></i>
+          <div id="dash-insight" style="color:var(--txt2);">Loading insights...</div>
+        </div>
+      </div>
+
       <div class="qc-draft" id="qc-draft">
-        <span style="font-size:1.2rem;">📝</span>
+        <i class="fa-solid fa-pen-to-square" style="font-size:1rem;color:var(--amber);"></i>
         <div style="flex:1;min-width:0;"><strong>Unsaved Draft</strong><br><small id="qc-desc" style="color:var(--txt2);"></small></div>
         <button class="btn btn-amber btn-sm" onclick="nav('new-pat')">Resume →</button>
         <button class="btn-icon" onclick="localStorage.removeItem('ohm_draft');document.getElementById('qc-draft').classList.remove('show');">✕</button>
@@ -603,19 +720,19 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
 
       <div class="g2" style="gap:16px;">
         <div class="card ct">
-          <div class="card-hd"><div class="card-title">Recent Reports</div><button class="btn btn-ghost btn-xs" onclick="nav('history')">View All →</button></div>
-          <div class="tw"><table><thead><tr><th>Ref</th><th>Client</th><th>Date</th><th></th></tr></thead><tbody id="dash-recent"></tbody></table></div>
+          <div class="card-hd"><div class="card-title">Recent Properties</div><button class="btn btn-ghost btn-xs" onclick="nav('history')">View All →</button></div>
+          <div class="tw"><table><thead><tr><th>Property</th><th>Ref / Client</th><th>Date</th><th></th></tr></thead><tbody id="dash-recent"></tbody></table></div>
         </div>
         <div class="card cta">
           <div class="card-hd"><div class="card-title">Due Soon</div><button class="btn btn-ghost btn-xs" onclick="nav('renewals')">View All →</button></div>
-          <div class="tw"><table><thead><tr><th>Ref</th><th>Address</th><th>Expires</th><th></th></tr></thead><tbody id="dash-due"></tbody></table></div>
+          <div class="tw"><table><thead><tr><th>Property</th><th>Ref</th><th>Expires</th><th></th></tr></thead><tbody id="dash-due"></tbody></table></div>
         </div>
         <div class="card ctg" style="grid-column:span 2;">
-          <div class="card-hd"><div class="card-title">Last 6 Months — Appliances Tested</div></div>
+          <div class="card-hd"><div class="card-title">Last 6 Months — Properties Visited</div></div>
           <div class="chartwrap" id="dash-chart"></div>
           <div style="display:flex;gap:16px;margin-top:8px;font-size:.78rem;color:var(--txt2);">
-            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:var(--green);border-radius:2px;display:inline-block;"></span> Pass</span>
-            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:var(--red);border-radius:2px;display:inline-block;"></span> Fail</span>
+            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:var(--green);border-radius:2px;display:inline-block;"></span> No failures</span>
+            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:var(--red);border-radius:2px;display:inline-block;"></span> Had a failure</span>
           </div>
         </div>
       </div>
@@ -627,12 +744,12 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
     <div class="ph">
       <div class="ph-left"><div class="ph-title" id="form-title">New PAT Test</div><div class="ph-sub">Test Date applies to all rows · Ctrl+S = Draft · Ctrl+Shift+S = Complete</div></div>
       <div class="ph-acts" id="form-btns">
-        <button class="btn btn-ghost btn-sm" onclick="clearForm()">🗑 Clear</button>
-        <button class="btn btn-ghost btn-sm" onclick="downloadPDF()">📄 PDF</button>
-        <button class="btn btn-ghost btn-sm" onclick="printCertificate()">🖨 Print</button>
-        <button class="btn btn-ghost btn-sm" onclick="emailClient()">✉ Email</button>
-        <button class="btn btn-primary btn-sm" onclick="saveReport(false)">💾 Draft</button>
-        <button class="btn btn-success btn-sm" onclick="saveReport(true)">✅ Complete</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearForm()"><i class="fa-solid fa-trash"></i> Clear</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadPDF()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="printCertificate()"><i class="fa-solid fa-print"></i> Print</button>
+        <button class="btn btn-ghost btn-sm" onclick="emailClient()"><i class="fa-solid fa-envelope"></i> Email</button>
+        <button class="btn btn-primary btn-sm" onclick="saveReport(false)"><i class="fa-solid fa-floppy-disk"></i> Draft</button>
+        <button class="btn btn-success btn-sm" onclick="saveReport(true)"><i class="fa-solid fa-check"></i> Complete</button>
       </div>
     </div>
     <!-- TWO COLUMN LAYOUT -->
@@ -644,14 +761,19 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
           <div class="card" style="margin-bottom:12px;">
             <div class="slbl" style="margin-top:0;">Report Details</div>
             <div class="g4" style="gap:10px;">
-              <div class="fg"><label>Ref Number</label><input type="text" id="pat-ref" onchange="updateRef();doPreview();updateSidePanel()"></div>
+              <div class="fg"><label>Ref Number</label><input type="text" id="pat-ref" onchange="this.dataset.manual='true';updateRef();doPreview();updateSidePanel()"></div>
               <div class="fg"><label>Status</label><select id="pat-status" onchange="doPreview();updateSidePanel()"><option value="draft">📝 Draft</option><option value="completed">✅ Completed</option></select></div>
-              <div class="fg"><label>Test Date</label><input type="date" id="pat-date" onchange="applyHeaderDate(this.value);doPreview();updateSidePanel()"></div>
+              <div class="fg"><label>Test Date</label>
+                <div style="display:flex;gap:6px;">
+                  <input type="date" id="pat-date" onchange="doPreview();updateSidePanel()" style="flex:1;">
+                  <button type="button" class="btn btn-ghost btn-xs" onclick="applyHeaderDate(gv('pat-date'))" title="Apply this date to all rows"><i class="fa-solid fa-arrow-down"></i> Apply All</button>
+                </div>
+              </div>
               <div class="fg"><label>Engineer</label><input type="text" id="pat-eng" onchange="doPreview();updateSidePanel()"></div>
             </div>
           </div>
-          <div class="card" style="margin-bottom:12px;">
-            <div class="slbl" style="margin-top:0;">Client Information</div>
+          <div class="card" style="margin-bottom:12px;border-left:3px solid var(--accent);">
+            <div class="slbl" style="margin-top:0;">Property & Client Information</div>
             <div class="g2" style="gap:10px;">
               <div class="fg"><label>Landlord Name</label><input type="text" id="pat-landlord" onchange="doPreview();updateSidePanel()"></div>
               <div class="fg"><label>Agency / Client Name</label><input type="text" id="pat-agency" onchange="doPreview();updateSidePanel()"></div>
@@ -667,8 +789,9 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
               <div class="card-title">Appliances</div>
               <div style="display:flex;gap:6px;align-items:center;">
                 <span id="app-sum" style="font-size:.78rem;color:var(--txt2);"></span>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="addRow()">＋ Add Row</button>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="bulkAddRows()">＋ Bulk Add</button>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="addRow()"><i class="fa-solid fa-plus"></i> Add Row</button>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="bulkAddRows()"><i class="fa-solid fa-layer-group"></i> Bulk Add</button>
+                <button type="button" class="btn btn-purple btn-sm" onclick="openScanModal()"><i class="fa-solid fa-camera"></i> Scan Handwriting</button>
               </div>
             </div>
             <div class="tw">
@@ -679,7 +802,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
               </tr></thead><tbody id="app-tbody"></tbody></table>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:8px;">
-              <button type="button" class="btn btn-ghost btn-sm" onclick="addRow()">＋ Add Row (Tab advances)</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="addRow()"><i class="fa-solid fa-plus"></i> Add Row (Tab advances)</button>
               <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                 <span id="app-tally" style="font-size:.8rem;"></span>
                 <span id="pf-lbl" style="font-size:.8rem;color:var(--txt2);">—</span>
@@ -691,7 +814,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
         <div class="prev-label" style="margin-top:8px;">Live Certificate Preview</div>
         <div id="print-tip" style="background:rgba(37,99,235,.06);border:1px solid rgba(37,99,235,.15);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:.79rem;color:var(--accent2);display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;">
           <span style="flex-shrink:0;">💡</span>
-          <div style="flex:1;color:var(--txt2);">① <strong>📄 PDF</strong> — pixel-perfect A4 &nbsp;·&nbsp; ② <strong>🖨 Print</strong> — browser print → No Margins → A4</div>
+          <div style="flex:1;color:var(--txt2);">① <strong><i class="fa-solid fa-file-pdf"></i> PDF</strong> — pixel-perfect A4 &nbsp;·&nbsp; ② <strong><i class="fa-solid fa-print"></i> Print</strong> — browser print → No Margins → A4</div>
           <button onclick="this.parentElement.style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--txt3);font-size:.9rem;flex-shrink:0;">✕</button>
         </div>
         <div class="cert-scroll" id="cert-pages"></div>
@@ -705,6 +828,13 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
         <div id="sw-status" class="sw-cert-status empty">
           <span id="sw-status-dot">◯</span>
           <span id="sw-status-lbl">No data yet</span>
+        </div>
+
+        <!-- Property Summary -->
+        <div class="sw-card" style="margin-bottom:10px;">
+          <div style="font-size:.72rem;color:var(--txt2);margin-bottom:6px;font-weight:600;">Property</div>
+          <div id="sw-prop-addr" style="font-size:.82rem;font-weight:700;color:var(--txt);line-height:1.3;margin-bottom:4px;">—</div>
+          <div id="sw-prop-client" style="font-size:.74rem;color:var(--txt2);">—</div>
         </div>
 
         <!-- Live Counts -->
@@ -752,8 +882,9 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
 
         <!-- Quick actions -->
         <div style="display:flex;flex-direction:column;gap:6px;margin-top:2px;">
-          <button class="btn btn-ghost btn-sm btn-block" onclick="addRow()" style="justify-content:flex-start;">＋ Add appliance row</button>
-          <button class="btn btn-ghost btn-sm btn-block" onclick="downloadPDF()" style="justify-content:flex-start;">📄 Download PDF</button>
+          <button class="btn btn-ghost btn-sm btn-block" onclick="addRow()" style="justify-content:flex-start;"><i class="fa-solid fa-plus"></i> Add appliance row</button>
+          <button class="btn btn-purple btn-sm btn-block" onclick="openScanModal()" style="justify-content:flex-start;"><i class="fa-solid fa-camera"></i> Scan Handwriting</button>
+          <button class="btn btn-ghost btn-sm btn-block" onclick="downloadPDF()" style="justify-content:flex-start;"><i class="fa-solid fa-file-pdf"></i> Download PDF</button>
         </div>
 
       </div><!-- /pat-side-col -->
@@ -765,9 +896,9 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
     <div class="ph">
       <div class="ph-left"><div class="ph-title">Test History</div><div class="ph-sub" id="hist-sub">—</div></div>
       <div class="ph-acts">
-        <button class="btn btn-ghost btn-sm" onclick="exportCSV()">📊 CSV</button>
-        <button class="btn btn-ghost btn-sm" onclick="exportData()">📤 Backup</button>
-        <button class="btn btn-primary btn-sm" onclick="openBatchModal()">📦 Batch ZIP</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV()"><i class="fa-solid fa-file-csv"></i> CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportData()"><i class="fa-solid fa-upload"></i> Backup</button>
+        <button class="btn btn-primary btn-sm" onclick="openBatchModal()"><i class="fa-solid fa-box-archive"></i> Batch ZIP</button>
       </div>
     </div>
     <div class="pb">
@@ -803,16 +934,16 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
     <div class="ph">
       <div class="ph-left"><div class="ph-title">Certificate Renewals</div><div class="ph-sub">Track expiring and overdue certificates</div></div>
       <div class="ph-acts">
-        <button class="btn btn-ghost btn-sm" onclick="exportRenewalsCSV()">📅 Export CSV</button>
-        <button class="btn btn-primary btn-sm" onclick="bulkRemind()">📧 Bulk Remind</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportRenewalsCSV()"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+        <button class="btn btn-primary btn-sm" onclick="bulkRemind()"><i class="fa-solid fa-envelope"></i> Bulk Remind</button>
       </div>
     </div>
     <div class="pb">
       <div class="sgrid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));">
-        <div class="sc rd"><div class="sc-ico">🔴</div><div class="sc-val" id="ren-ov">0</div><div class="sc-lbl">Overdue</div></div>
-        <div class="sc am"><div class="sc-ico">🟡</div><div class="sc-val" id="ren-30">0</div><div class="sc-lbl">Due 30 Days</div></div>
-        <div class="sc bl"><div class="sc-ico">🔵</div><div class="sc-val" id="ren-90">0</div><div class="sc-lbl">Due 90 Days</div></div>
-        <div class="sc gr"><div class="sc-ico">🟢</div><div class="sc-val" id="ren-ok">0</div><div class="sc-lbl">All Valid</div></div>
+        <div class="sc rd"><div class="sc-ico"><i class="fa-solid fa-circle-exclamation"></i></div><div class="sc-val" id="ren-ov">0</div><div class="sc-lbl">Overdue</div></div>
+        <div class="sc am"><div class="sc-ico"><i class="fa-solid fa-hourglass-half"></i></div><div class="sc-val" id="ren-30">0</div><div class="sc-lbl">Due 30 Days</div></div>
+        <div class="sc bl"><div class="sc-ico"><i class="fa-solid fa-calendar-days"></i></div><div class="sc-val" id="ren-90">0</div><div class="sc-lbl">Due 90 Days</div></div>
+        <div class="sc gr"><div class="sc-ico"><i class="fa-solid fa-circle-check"></i></div><div class="sc-val" id="ren-ok">0</div><div class="sc-lbl">All Valid</div></div>
       </div>
       <div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;">
         <button class="btn btn-ghost btn-sm" onclick="setRF('all')">All</button>
@@ -829,7 +960,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
         </tr></thead><tbody id="ren-tbody"></tbody></table></div>
         <div id="ren-bulk" style="display:none;padding-top:11px;border-top:1px solid var(--b1);margin-top:11px;align-items:center;gap:9px;">
           <span id="ren-cnt" style="font-size:.88rem;color:var(--txt2);"></span>
-          <button class="btn btn-ghost btn-sm" onclick="bulkRemindSelected()">📧 Email Selected</button>
+          <button class="btn btn-ghost btn-sm" onclick="bulkRemindSelected()"><i class="fa-solid fa-envelope"></i> Email Selected</button>
         </div>
       </div>
     </div>
@@ -848,12 +979,12 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
     </div>
     <div class="pb">
       <div class="sgrid">
-        <div class="sc gr"><div class="sc-ico">✅</div><div class="sc-val" id="an-pass">—</div><div class="sc-lbl">Pass Rate</div></div>
-        <div class="sc rd"><div class="sc-ico">❌</div><div class="sc-val" id="an-fail">—</div><div class="sc-lbl">Fail Rate</div></div>
-        <div class="sc bl"><div class="sc-ico">🔌</div><div class="sc-val" id="an-apps">0</div><div class="sc-lbl">Appliances</div></div>
-        <div class="sc bl"><div class="sc-ico">📋</div><div class="sc-val" id="an-reps">0</div><div class="sc-lbl">Reports</div></div>
-        <div class="sc am"><div class="sc-ico">🏆</div><div class="sc-val" id="an-eng" style="font-size:1rem;">—</div><div class="sc-lbl">Top Engineer</div></div>
-        <div class="sc pu"><div class="sc-ico">📍</div><div class="sc-val" id="an-locs">0</div><div class="sc-lbl">Unique Locations</div></div>
+        <div class="sc gr"><div class="sc-ico"><i class="fa-solid fa-circle-check"></i></div><div class="sc-val" id="an-pass">—</div><div class="sc-lbl">Pass Rate</div></div>
+        <div class="sc rd"><div class="sc-ico"><i class="fa-solid fa-circle-xmark"></i></div><div class="sc-val" id="an-fail">—</div><div class="sc-lbl">Fail Rate</div></div>
+        <div class="sc bl"><div class="sc-ico"><i class="fa-solid fa-plug"></i></div><div class="sc-val" id="an-apps">0</div><div class="sc-lbl">Appliances</div></div>
+        <div class="sc bl"><div class="sc-ico"><i class="fa-solid fa-file-lines"></i></div><div class="sc-val" id="an-reps">0</div><div class="sc-lbl">Reports</div></div>
+        <div class="sc am"><div class="sc-ico"><i class="fa-solid fa-trophy"></i></div><div class="sc-val" id="an-eng" style="font-size:1rem;">—</div><div class="sc-lbl">Top Engineer</div></div>
+        <div class="sc pu"><div class="sc-ico"><i class="fa-solid fa-location-dot"></i></div><div class="sc-val" id="an-locs">0</div><div class="sc-lbl">Unique Locations</div></div>
       </div>
       <div class="g2" style="gap:16px;">
         <div class="card"><div class="card-hd"><div class="card-title">Month-by-Month</div></div>
@@ -865,23 +996,6 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
         <div class="card"><div class="card-hd"><div class="card-title">❌ Common Failures</div></div>
           <div class="tw"><table><thead><tr><th>Description</th><th>Fails</th><th>Fail%</th></tr></thead><tbody id="an-fail-t"></tbody></table></div></div>
       </div>
-      <div class="card" style="margin-top:16px;">
-        <div class="card-hd">
-          <div class="card-title">💷 Revenue Estimate</div>
-          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-            <label style="text-transform:none;font-size:.88rem;color:var(--txt2);">£ per appliance</label>
-            <input type="number" id="an-price" value="3" style="width:68px;padding:6px 10px;" onchange="renderAnalytics()">
-            <label style="text-transform:none;font-size:.88rem;color:var(--txt2);">Min £</label>
-            <input type="number" id="an-min" value="75" style="width:68px;padding:6px 10px;" onchange="renderAnalytics()">
-          </div>
-        </div>
-        <div class="sgrid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">
-          <div class="sc gr"><div class="sc-ico">💰</div><div class="sc-val" id="an-rev-t">£0</div><div class="sc-lbl">Est. Total</div></div>
-          <div class="sc bl"><div class="sc-ico">📅</div><div class="sc-val" id="an-rev-m">£0</div><div class="sc-lbl">This Month</div></div>
-          <div class="sc am"><div class="sc-ico">📋</div><div class="sc-val" id="an-rev-a">£0</div><div class="sc-lbl">Avg per Report</div></div>
-          <div class="sc pu"><div class="sc-ico">🔮</div><div class="sc-val" id="an-rev-p">£0</div><div class="sc-lbl">Renewal Pipeline</div></div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -889,14 +1003,14 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
   <div class="tab" id="page-my-reports">
     <div class="ph">
       <div class="ph-left"><div class="ph-title">My Reports</div><div class="ph-sub" id="myrep-sub">Your personal activity</div></div>
-      <div class="ph-acts"><button class="btn btn-primary" onclick="nav('new-pat');initNewForm(true)">＋ New Report</button></div>
+      <div class="ph-acts"><button class="btn btn-primary" onclick="nav('new-pat');initNewForm(true)"><i class="fa-solid fa-plus"></i> New Report</button></div>
     </div>
     <div class="pb">
       <div class="sgrid" style="grid-template-columns:repeat(auto-fit,minmax(155px,1fr));">
-        <div class="sc bl"><div class="sc-ico">📋</div><div class="sc-val" id="my-total">0</div><div class="sc-lbl">My Reports</div></div>
-        <div class="sc gr"><div class="sc-ico">✅</div><div class="sc-val" id="my-pass">—</div><div class="sc-lbl">Pass Rate</div></div>
-        <div class="sc am"><div class="sc-ico">🔌</div><div class="sc-val" id="my-apps">0</div><div class="sc-lbl">Appliances</div></div>
-        <div class="sc rd"><div class="sc-ico">📝</div><div class="sc-val" id="my-drafts">0</div><div class="sc-lbl">Drafts</div></div>
+        <div class="sc bl"><div class="sc-ico"><i class="fa-solid fa-file-lines"></i></div><div class="sc-val" id="my-total">0</div><div class="sc-lbl">My Reports</div></div>
+        <div class="sc gr"><div class="sc-ico"><i class="fa-solid fa-circle-check"></i></div><div class="sc-val" id="my-pass">—</div><div class="sc-lbl">Pass Rate</div></div>
+        <div class="sc am"><div class="sc-ico"><i class="fa-solid fa-plug"></i></div><div class="sc-val" id="my-apps">0</div><div class="sc-lbl">Appliances</div></div>
+        <div class="sc rd"><div class="sc-ico"><i class="fa-solid fa-pen-to-square"></i></div><div class="sc-val" id="my-drafts">0</div><div class="sc-lbl">Drafts</div></div>
       </div>
       <div class="card">
         <div class="card-hd"><div class="card-title">My Recent Reports</div></div>
@@ -930,7 +1044,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
   <div class="tab" id="page-settings">
     <div class="ph">
       <div class="ph-left"><div class="ph-title">Settings</div><div class="ph-sub" id="settings-sub">Configure your PAT system</div></div>
-      <div class="ph-acts"><button class="btn btn-primary" onclick="saveSettings()">💾 Save All Settings</button></div>
+      <div class="ph-acts"><button class="btn btn-primary" onclick="saveSettings()"><i class="fa-solid fa-floppy-disk"></i> Save All Settings</button></div>
     </div>
     <div class="pb">
       <div id="settings-blocked" class="alert ad" style="display:none;"><span>🔒</span><div><div class="at_">Access Restricted</div><div class="ab_">Settings can only be changed by the administrator.</div></div></div>
@@ -940,6 +1054,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
           <div class="stab" onclick="stab('branding')">🎨 Branding</div>
           <div class="stab" onclick="stab('email')">✉️ Email</div>
           <div class="stab" onclick="stab('defaults')">⚙️ Defaults</div>
+          <div class="stab" onclick="stab('scan')"><i class="fa-solid fa-camera"></i> AI Scan</div>
           <div class="stab" onclick="stab('cert')">📄 Certificate</div>
           <div class="stab" onclick="stab('features')">🔧 Features</div>
           <div class="stab" onclick="stab('users')">👥 Users</div>
@@ -985,22 +1100,22 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
                 <div class="lprev" id="pr-logo"><span style="font-size:.82rem;color:var(--txt3);">No Image</span></div>
                 <div class="ldrop" onclick="document.getElementById('f-logo').click()">📁 Upload Logo</div>
                 <input type="file" id="f-logo" accept="image/*" style="display:none;" onchange="uploadLogo(this,'companyLogo','pr-logo')">
-                <button class="btn btn-ghost btn-xs" onclick="clearLogo('companyLogo','pr-logo')">✕ Clear</button></div>
+                <button class="btn btn-ghost btn-xs" onclick="clearLogo('companyLogo','pr-logo')"><i class="fa-solid fa-xmark"></i> Clear</button></div>
               <div><label style="display:block;margin-bottom:7px;">Scheme Logo 1</label>
                 <div class="lprev" id="pr-pat1"><span style="font-size:.82rem;color:var(--txt3);">No Image</span></div>
                 <div class="ldrop" onclick="document.getElementById('f-pat1').click()">📁 Upload</div>
                 <input type="file" id="f-pat1" accept="image/*" style="display:none;" onchange="uploadLogo(this,'patLogo','pr-pat1')">
-                <button class="btn btn-ghost btn-xs" onclick="clearLogo('patLogo','pr-pat1')">✕ Clear</button></div>
+                <button class="btn btn-ghost btn-xs" onclick="clearLogo('patLogo','pr-pat1')"><i class="fa-solid fa-xmark"></i> Clear</button></div>
               <div><label style="display:block;margin-bottom:7px;">Scheme Logo 2</label>
                 <div class="lprev" id="pr-pat2"><span style="font-size:.82rem;color:var(--txt3);">No Image</span></div>
                 <div class="ldrop" onclick="document.getElementById('f-pat2').click()">📁 Upload</div>
                 <input type="file" id="f-pat2" accept="image/*" style="display:none;" onchange="uploadLogo(this,'patLogo2','pr-pat2')">
-                <button class="btn btn-ghost btn-xs" onclick="clearLogo('patLogo2','pr-pat2')">✕ Clear</button></div>
+                <button class="btn btn-ghost btn-xs" onclick="clearLogo('patLogo2','pr-pat2')"><i class="fa-solid fa-xmark"></i> Clear</button></div>
               <div><label style="display:block;margin-bottom:7px;">Engineer Signature</label>
                 <div class="lprev" id="pr-sig"><span style="font-size:.82rem;color:var(--txt3);">No Image</span></div>
                 <div class="ldrop" onclick="document.getElementById('f-sig').click()">📁 Upload</div>
                 <input type="file" id="f-sig" accept="image/*" style="display:none;" onchange="uploadLogo(this,'engineerSignature','pr-sig')">
-                <button class="btn btn-ghost btn-xs" onclick="clearLogo('engineerSignature','pr-sig')">✕ Clear</button></div>
+                <button class="btn btn-ghost btn-xs" onclick="clearLogo('engineerSignature','pr-sig')"><i class="fa-solid fa-xmark"></i> Clear</button></div>
             </div>
             <div class="slbl">Certificate Colours</div>
             <div class="g4" style="gap:12px;">
@@ -1039,7 +1154,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
             <div class="slbl">Test Email</div>
             <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
               <input type="email" id="s-test-addr" placeholder="Send test to this address..." style="width:280px;">
-              <button class="btn btn-primary" onclick="testSMTP()">📧 Send Test Email</button>
+              <button class="btn btn-primary" onclick="testSMTP()"><i class="fa-solid fa-paper-plane"></i> Send Test Email</button>
               <div id="smtp-st" class="smtp-st smtp-idle">⬤ Not tested</div>
             </div>
           </div>
@@ -1066,6 +1181,28 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
         </div>
 
         <!-- CERTIFICATE -->
+        <div class="spanel" id="sp-scan">
+          <div class="card">
+            <div class="slbl" style="margin-top:0;">Handwriting Scan (AI-powered)</div>
+            <p style="font-size:.88rem;color:var(--txt2);margin-bottom:16px;line-height:1.5;">
+              Engineers can photograph a handwritten test sheet on the New PAT Test page and have Asset ID + Description rows filled in automatically.
+              Add a free Gemini API key below for the best accuracy. If left blank, scans automatically fall back to a free public OCR service
+              (no signup) that is far less accurate on handwriting &mdash; Gemini is strongly recommended.
+            </p>
+            <div class="fg" style="margin-bottom:8px;">
+              <label>Gemini API Key</label>
+              <input type="text" id="s-gemini-key" placeholder="AIza...">
+              <div class="hint">Free, no credit card. Get one in under a minute at
+                <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>
+                &mdash; sign in with any Google account, click &quot;Create API key&quot;, paste it here.</div>
+            </div>
+            <div class="alert ai" style="margin-top:14px;">
+              <span><i class="fa-solid fa-circle-info"></i></span>
+              <div><div class="at_">Without a Gemini key</div><div class="ab_">Scans still work using OCR.space's free public demo endpoint, but plain OCR struggles with handwriting &mdash; always review results before adding rows either way.</div></div>
+            </div>
+          </div>
+        </div>
+
         <div class="spanel" id="sp-cert">
           <div class="card">
             <div class="slbl" style="margin-top:0;">Certificate Content</div>
@@ -1122,7 +1259,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
             <div class="toggle-row">
               <div class="toggle-info">
                 <div class="toggle-label">Show Analytics Tab</div>
-                <div class="toggle-desc">Revenue estimates, engineer performance charts</div>
+                <div class="toggle-desc">Pass rates, engineer performance, top locations, common failures</div>
               </div>
               <label class="sw"><input type="checkbox" id="ft-analytics" checked><span class="sw-slider"></span></label>
             </div>
@@ -1248,13 +1385,6 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
             </div>
             <div class="toggle-row">
               <div class="toggle-info">
-                <div class="toggle-label">Revenue Estimates in Analytics <span class="toggle-tag tag-admin">Admin</span></div>
-                <div class="toggle-desc">Show estimated revenue section in Analytics tab</div>
-              </div>
-              <label class="sw"><input type="checkbox" id="ft-revenue" checked><span class="sw-slider"></span></label>
-            </div>
-            <div class="toggle-row">
-              <div class="toggle-info">
                 <div class="toggle-label">Notice Board <span class="toggle-tag tag-admin">Admin</span></div>
                 <div class="toggle-desc">Allow admin to broadcast messages to all engineers</div>
               </div>
@@ -1287,7 +1417,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
           <div class="card" style="margin-top:12px;">
             <div class="card-hd" style="margin-bottom:10px;">
               <div class="card-title">👥 Registered Users</div>
-              <button class="btn btn-ghost btn-sm" onclick="loadRegisteredUsers()">🔄 Refresh</button>
+              <button class="btn btn-ghost btn-sm" onclick="loadRegisteredUsers()"><i class="fa-solid fa-rotate"></i> Refresh</button>
             </div>
             <div class="tw"><table><thead><tr><th>Email</th><th>Role</th><th>Last Seen</th><th>Reports</th></tr></thead>
             <tbody id="users-tbody"><tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:16px;">Click Refresh to load users</td></tr></tbody></table></div>
@@ -1307,8 +1437,8 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
               <div class="fg full"><label>Notice Body</label><textarea id="s-nbody" style="height:90px;"></textarea></div>
             </div>
             <div style="display:flex;gap:9px;margin-top:12px;">
-              <button class="btn btn-primary" onclick="saveNotice()">📢 Publish Notice</button>
-              <button class="btn btn-danger" onclick="clearNotice()">✕ Clear Notice</button>
+              <button class="btn btn-primary" onclick="saveNotice()"><i class="fa-solid fa-bullhorn"></i> Publish Notice</button>
+              <button class="btn btn-danger" onclick="clearNotice()"><i class="fa-solid fa-xmark"></i> Clear Notice</button>
             </div>
             <div id="notice-preview" style="margin-top:16px;display:none;">
               <div class="slbl">Current Live Notice</div>
@@ -1324,7 +1454,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
               <div class="card-title">📊 Firebase Spark Plan Usage</div>
               <div style="display:flex;gap:8px;align-items:center;">
                 <span id="usage-last-reset" class="usage-reset-info">Resets daily at midnight Pacific</span>
-                <button class="btn btn-ghost btn-sm" onclick="refreshUsageDisplay()">🔄 Refresh</button>
+                <button class="btn btn-ghost btn-sm" onclick="refreshUsageDisplay()"><i class="fa-solid fa-rotate"></i> Refresh</button>
               </div>
             </div>
             <div class="alert ai" style="margin-bottom:14px;"><span>ℹ️</span>
@@ -1366,7 +1496,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
           <div class="card" style="margin-bottom:12px;">
             <div class="card-hd" style="margin-bottom:12px;">
               <div class="card-title">🗄️ Local Cache Status</div>
-              <button class="btn btn-ghost btn-sm" onclick="forceRefreshAll()">⚡ Force Refresh All</button>
+              <button class="btn btn-ghost btn-sm" onclick="forceRefreshAll()"><i class="fa-solid fa-bolt"></i> Force Refresh All</button>
             </div>
             <div id="cache-status-list"></div>
             <div class="alert ai" style="margin-top:12px;">
@@ -1375,16 +1505,16 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
               <div class="ab_">Reports, settings and audit log are cached locally. On page load, data is served from cache instantly. Firebase only fetches when you explicitly refresh, after 30 minutes, or when you save new data. Force Refresh reloads all data from Firebase right now.</div></div>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
-              <button class="btn btn-ghost btn-sm" onclick="clearAllCache()">🗑 Clear All Cache</button>
-              <button class="btn btn-ghost btn-sm" onclick="forceRefreshAllUsers()">📡 Force Refresh (All Users)</button>
-              <button class="btn btn-ghost btn-sm" onclick="exportUsageLog()">📊 Export Usage CSV</button>
+              <button class="btn btn-ghost btn-sm" onclick="clearAllCache()"><i class="fa-solid fa-trash"></i> Clear All Cache</button>
+              <button class="btn btn-ghost btn-sm" onclick="forceRefreshAllUsers()"><i class="fa-solid fa-tower-broadcast"></i> Force Refresh (All Users)</button>
+              <button class="btn btn-ghost btn-sm" onclick="exportUsageLog()"><i class="fa-solid fa-file-csv"></i> Export Usage CSV</button>
             </div>
           </div>
 
           <div class="card">
             <div class="card-hd" style="margin-bottom:10px;">
               <div class="card-title">📋 Recent Operations Log</div>
-              <button class="btn btn-ghost btn-sm" onclick="clearOpLog()">✕ Clear Log</button>
+              <button class="btn btn-ghost btn-sm" onclick="clearOpLog()"><i class="fa-solid fa-xmark"></i> Clear Log</button>
             </div>
             <div class="fb-op-log" id="fb-op-log">
               <div class="fb-log-entry"><span class="fb-log-ts">—</span><span class="fb-log-col">No operations logged yet</span></div>
@@ -1407,7 +1537,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
               <div class="fg"><label>Messaging Sender ID</label><input type="text" id="s-fb-msg"></div>
               <div class="fg"><label>App ID</label><input type="text" id="s-fb-app"></div>
             </div>
-            <button class="btn btn-danger" style="margin-top:16px;" onclick="saveFBConfig()">💾 Save Firebase Config (Requires Reload)</button>
+            <button class="btn btn-danger" style="margin-top:16px;" onclick="saveFBConfig()"><i class="fa-solid fa-floppy-disk"></i> Save Firebase Config (Requires Reload)</button>
             <div class="slbl">Recommended Firestore Rules</div>
             <div style="background:var(--s2);border-radius:var(--rsm);padding:16px;border:1px solid var(--b1);">
               <pre style="font-family:var(--mono);font-size:.76rem;color:var(--green2);line-height:1.7;white-space:pre-wrap;">rules_version = '2';
@@ -1427,21 +1557,21 @@ service cloud.firestore {
           <div class="card">
             <div class="slbl" style="margin-top:0;">Export Data</div>
             <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:22px;">
-              <button class="btn btn-ghost" onclick="exportCSV()">📊 Full Database CSV</button>
-              <button class="btn btn-ghost" onclick="exportRenewalsCSV()">📅 Renewals CSV</button>
-              <button class="btn btn-ghost" onclick="exportData()">📤 JSON Backup</button>
-              <button class="btn btn-ghost" onclick="exportAuditCSV()">🛡 Audit CSV</button>
+              <button class="btn btn-ghost" onclick="exportCSV()"><i class="fa-solid fa-file-csv"></i> Full Database CSV</button>
+              <button class="btn btn-ghost" onclick="exportRenewalsCSV()"><i class="fa-solid fa-file-csv"></i> Renewals CSV</button>
+              <button class="btn btn-ghost" onclick="exportData()"><i class="fa-solid fa-upload"></i> JSON Backup</button>
+              <button class="btn btn-ghost" onclick="exportAuditCSV()"><i class="fa-solid fa-shield-halved"></i> Audit CSV</button>
             </div>
             <div class="slbl">Import Data</div>
             <div class="alert aw" style="margin-bottom:12px;"><span>⚠️</span><div><div class="at_">Caution</div><div class="ab_">Import adds/overwrites reports. Export a backup first.</div></div></div>
-            <button class="btn btn-amber" onclick="document.getElementById('imp-file').click()">📥 Import JSON Backup</button>
+            <button class="btn btn-amber" onclick="document.getElementById('imp-file').click()"><i class="fa-solid fa-download"></i> Import JSON Backup</button>
             <input type="file" id="imp-file" accept=".json" style="display:none;" onchange="doImport(this)">
             <div class="slbl">Danger Zone</div>
             <div class="card ctr" style="background:var(--red-dim);">
               <p style="font-size:.9rem;color:var(--txt2);margin-bottom:12px;">These actions are irreversible. Export a backup first.</p>
               <div style="display:flex;gap:9px;flex-wrap:wrap;">
-                <button class="btn btn-danger" onclick="deleteAllDrafts()">🗑 Delete All Drafts</button>
-                <button class="btn btn-danger" onclick="purgeExpired()">🗑 Purge Expired Reports</button>
+                <button class="btn btn-danger" onclick="deleteAllDrafts()"><i class="fa-solid fa-trash"></i> Delete All Drafts</button>
+                <button class="btn btn-danger" onclick="purgeExpired()"><i class="fa-solid fa-trash"></i> Purge Expired Reports</button>
               </div>
             </div>
           </div>
@@ -1454,7 +1584,7 @@ service cloud.firestore {
   <div class="tab" id="page-audit">
     <div class="ph">
       <div class="ph-left"><div class="ph-title">Audit Log</div><div class="ph-sub">Every action recorded</div></div>
-      <div class="ph-acts"><button class="btn btn-ghost btn-sm" onclick="exportAuditCSV()">📊 Export CSV</button></div>
+      <div class="ph-acts"><button class="btn btn-ghost btn-sm" onclick="exportAuditCSV()"><i class="fa-solid fa-file-csv"></i> Export CSV</button></div>
     </div>
     <div class="pb">
       <div class="card" style="padding:12px 16px;margin-bottom:12px;">
@@ -1482,9 +1612,9 @@ service cloud.firestore {
     <div class="modal-hd"><div class="modal-title">📦 Batch PDF — Download as ZIP</div><button class="btn-icon" onclick="closeBatchModal()">✕</button></div>
     <p style="font-size:.86rem;color:var(--txt2);margin-bottom:14px;">Select reports to include. Each will be generated as a PDF and bundled into one ZIP.</p>
     <div style="display:flex;gap:7px;margin-bottom:11px;flex-wrap:wrap;">
-      <button class="btn btn-ghost btn-sm" onclick="batchSelectAll(true)">☑ All</button>
-      <button class="btn btn-ghost btn-sm" onclick="batchSelectAll(false)">☐ None</button>
-      <button class="btn btn-ghost btn-sm" onclick="batchFilterCompleted()">✅ Completed Only</button>
+      <button class="btn btn-ghost btn-sm" onclick="batchSelectAll(true)"><i class="fa-solid fa-check-double"></i> All</button>
+      <button class="btn btn-ghost btn-sm" onclick="batchSelectAll(false)"><i class="fa-solid fa-square"></i> None</button>
+      <button class="btn btn-ghost btn-sm" onclick="batchFilterCompleted()"><i class="fa-solid fa-circle-check"></i> Completed Only</button>
     </div>
     <div id="batch-list" style="max-height:260px;overflow-y:auto;border:1px solid var(--b2);border-radius:var(--rsm);padding:4px;"></div>
     <div id="batch-prog" style="display:none;margin-top:16px;">
@@ -1493,7 +1623,48 @@ service cloud.firestore {
     </div>
     <div style="display:flex;gap:9px;margin-top:18px;justify-content:flex-end;">
       <button class="btn btn-ghost" onclick="closeBatchModal()">Cancel</button>
-      <button class="btn btn-primary" id="batch-go-btn" onclick="runBatchZIP()">📦 Download ZIP</button>
+      <button class="btn btn-primary" id="batch-go-btn" onclick="runBatchZIP()"><i class="fa-solid fa-box-archive"></i> Download ZIP</button>
+    </div>
+  </div>
+</div>
+
+<!-- RENEWAL MODAL -->
+<div id="renew-modal" class="modal">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-hd"><div class="modal-title"><i class="fa-solid fa-rotate"></i> Renew Certificate</div><button class="btn-icon" onclick="closeRenewModal()">✕</button></div>
+    <p style="font-size:.86rem;color:var(--txt2);margin-bottom:14px;">Starting a new test cycle for this property. Enter a new starting Asset ID and every appliance will be renumbered from there in order &mdash; leave blank to keep the original Asset IDs.</p>
+    <div class="fg"><label>New Starting Asset # (optional)</label><input type="text" id="renew-start-id" placeholder="e.g. A101"></div>
+    <div style="display:flex;gap:9px;margin-top:16px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeRenewModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmRenew()"><i class="fa-solid fa-rotate"></i> Start Renewal</button>
+    </div>
+  </div>
+</div>
+
+<!-- HANDWRITING SCAN MODAL -->
+<div id="scan-modal" class="modal">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-hd"><div class="modal-title"><i class="fa-solid fa-camera"></i> Scan Handwriting</div><button class="btn-icon" onclick="closeScanModal()">✕</button></div>
+    <p style="font-size:.86rem;color:var(--txt2);margin-bottom:14px;">Photograph the handwritten Asset ID / Description columns. Review the detected rows before adding &mdash; handwriting recognition isn't perfect.</p>
+    <div class="fg" style="margin-bottom:10px;">
+      <label>Photo</label>
+      <input type="file" accept="image/*" capture="environment" onchange="handleScanFile(this)">
+    </div>
+    <div id="scan-preview"></div>
+    <div style="display:flex;gap:9px;margin-top:14px;justify-content:flex-end;align-items:center;">
+      <span id="scan-status" style="font-size:.8rem;color:var(--txt2);flex:1;"></span>
+      <button class="btn btn-primary" id="scan-go-btn" onclick="runScan()" disabled><i class="fa-solid fa-wand-magic-sparkles"></i> Scan Handwriting</button>
+    </div>
+    <div id="scan-results-wrap" style="display:none;margin-top:16px;border-top:1px solid var(--b1);padding-top:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="card-title" style="font-size:.84rem;">Detected Rows</div>
+        <span id="scan-count" style="font-size:.78rem;color:var(--txt2);"></span>
+      </div>
+      <div id="scan-results-list" style="max-height:260px;overflow-y:auto;"></div>
+      <div style="display:flex;gap:9px;margin-top:14px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="closeScanModal()">Cancel</button>
+        <button class="btn btn-success" onclick="addScanResults()"><i class="fa-solid fa-plus"></i> Add Selected Rows</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1510,7 +1681,7 @@ service cloud.firestore {
     </div>
     <div style="display:flex;gap:9px;margin-top:16px;justify-content:flex-end;">
       <button class="btn btn-ghost" onclick="closeBulkModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="doBulkAdd()">＋ Add Rows</button>
+      <button class="btn btn-primary" onclick="doBulkAdd()"><i class="fa-solid fa-plus"></i> Add Rows</button>
     </div>
   </div>
 </div>
@@ -1549,6 +1720,7 @@ const DEFS={
   companyAddress:'127 Woodlands Road, Ilford, Essex, IG1 1JP',
   contactPhone:'02033022024',email:'info@ohmelectricals.co.uk',website:'',vat:'',regNo:'',insurance:'',
   adminEmail:'',companyLogo:'',patLogo:'',patLogo2:'',engineerSignature:'',
+  geminiKey:'',
   colHeader:'#1e3a5f',colHText:'#ffffff',colRow:'#f8fafc',
   smtpHost:'smtp.office365.com',smtpPort:'587',smtpUser:'',smtpPass:'',smtpName:'',smtpCC:'',
   emailSubject:'Your PAT Certificate — Ref: {ref}',defEmail:'',
@@ -1564,7 +1736,7 @@ const DEFS={
   features:{defaultTheme:'light',clients:true,analytics:true,myreports:true,autosave:true,preview:true,
     smartref:true,ac:true,bulk:true,watermark:true,batchzip:true,quicksearch:true,
     certbadges:true,lazyload:true,expalert:true,setupwarn:true,smtpwarn:true,
-    sidbadges:true,audit:true,revenue:true,notice:true,offline:true}
+    sidbadges:true,audit:true,notice:true,offline:true}
 };
 
 /* ─── STATE ─── */
@@ -1583,6 +1755,7 @@ const sv=(id,v)=>{const e=ge(id);if(e)e.value=v;};
 const setTxt=(id,v)=>{const e=ge(id);if(e)e.textContent=v;};
 const fd=str=>{if(!str)return'';const d=new Date(str);return isNaN(d)?str:d.toLocaleDateString('en-GB');};
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const jsq=s=>String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");/* escape for use inside a '...' JS string in onclick */
 const dlBlob=(data,type,name)=>{const b=new Blob([data],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);};
 const getFt=k=>ftrs[k]!==false;/* default true if not set */
 
@@ -1605,10 +1778,17 @@ function wrapTxt(txt,max=17){
 function toast(msg,type='info',dur=3500){
   const c=ge('toasts');const el=document.createElement('div');
   el.className='toast '+type;
-  const icons={success:'✅',error:'❌',info:'ℹ️',warn:'⚠️'};
-  el.innerHTML='<span>'+(icons[type]||'ℹ️')+'</span>'+msg;
+  const icons={success:'<i class="fa-solid fa-circle-check" style="color:var(--green);"></i>',error:'<i class="fa-solid fa-circle-xmark" style="color:var(--red);"></i>',info:'<i class="fa-solid fa-circle-info" style="color:var(--accent);"></i>',warn:'<i class="fa-solid fa-triangle-exclamation" style="color:var(--amber);"></i>'};
+  el.innerHTML='<span>'+(icons[type]||icons.info)+'</span>'+msg;
   c.appendChild(el);
   setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(40px)';setTimeout(()=>el.remove(),300);},dur);
+}
+function copyText(t){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(t).then(()=>toast('Copied: '+t,'info',2000)).catch(()=>{});
+  }else{
+    const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('Copied: '+t,'info',2000);
+  }
 }
 
 /* ─── THEME ─── */
@@ -1616,11 +1796,10 @@ function toggleDark(){
   document.body.classList.toggle('dark-theme');
   const isDark=document.body.classList.contains('dark-theme');
   localStorage.setItem('ohm_theme',isDark?'dark':'light');
-  const btn=ge('theme-toggle-btn');if(btn)btn.textContent=isDark?'☀️':'🌙';
+  const btn=ge('theme-toggle-btn');if(btn)btn.innerHTML=isDark?'<i class="fa-solid fa-sun"></i>':'<i class="fa-solid fa-moon"></i>';
   updateThemeBtns();
 }
 function setDefaultTheme(t){
-  // Save to cfg and apply to user's session
   if(cfg)cfg.features=cfg.features||{};
   if(cfg&&cfg.features)cfg.features.defaultTheme=t;
   localStorage.setItem('ohm_theme',t);
@@ -1629,14 +1808,13 @@ function setDefaultTheme(t){
   toast('Theme set to '+(t==='dark'?'🌙 Dark':'☀️ Light'),'info',2000);
 }
 function applyTheme(){
-  // Priority: user's local override → cfg setting → light default
   const local=localStorage.getItem('ohm_theme');
   const def=(cfg&&cfg.features&&cfg.features.defaultTheme)||'light';
   const theme=local||def;
   if(theme==='dark')document.body.classList.add('dark-theme');
   else document.body.classList.remove('dark-theme');
   const btn=ge('theme-toggle-btn');
-  if(btn)btn.textContent=document.body.classList.contains('dark-theme')?'☀️':'🌙';
+  if(btn)btn.innerHTML=document.body.classList.contains('dark-theme')?'<i class="fa-solid fa-sun"></i>':'<i class="fa-solid fa-moon"></i>';
 }
 function updateThemeBtns(){
   const isDark=document.body.classList.contains('dark-theme');
@@ -1661,6 +1839,21 @@ function authTab(t){
   ge('auth-err').classList.remove('on');
 }
 function authErr(msg){const e=ge('auth-err');e.textContent=msg;e.classList.add('on');}
+function togglePwVisibility(id,btn){
+  const el=ge(id);if(!el)return;
+  const showing=el.type==='text';
+  el.type=showing?'password':'text';
+  btn.innerHTML=showing?'<i class="fa-solid fa-eye"></i>':'<i class="fa-solid fa-eye-slash"></i>';
+}
+async function doForgotPassword(){
+  const email=(gv('a-email')||'').trim();
+  if(!email){authErr('Enter your email above first, then click Forgot password');return;}
+  try{
+    await auth.sendPasswordResetEmail(email);
+    ge('auth-err').classList.remove('on');
+    toast('Password reset email sent to '+email,'success');
+  }catch(e){authErr(e.message);}
+}
 async function doLogin(){
   const email=gv('a-email').trim(),pw=gv('a-pw');
   if(!email||!pw){authErr('Email and password required');return;}
@@ -1680,6 +1873,64 @@ async function doLogout(){
   location.reload();
 }
 
+/* ─── AUTH SCREEN PARTICLE BACKGROUND ─── */
+function initAuthParticles(){
+  const cv=ge('auth-particles');if(!cv)return;
+  const ctx=cv.getContext('2d');
+  let w,h,particles,raf;
+  function resize(){
+    const rect=cv.parentElement.getBoundingClientRect();
+    w=cv.width=rect.width;h=cv.height=rect.height;
+  }
+  function makeParticles(){
+    /* Denser field + more glow orbs to match the reference screenshot's atmosphere */
+    const count=Math.min(160,Math.floor((w*h)/7000));
+    particles=Array.from({length:count},()=>({
+      x:Math.random()*w,y:Math.random()*h,
+      vx:(Math.random()-.5)*.22,vy:(Math.random()-.5)*.22,
+      r:Math.random()*1.8+.6,
+      glow:Math.random()<0.22,gold:Math.random()<0.5 /* larger gold/blue "star" orbs scattered through the field */
+    }));
+  }
+  function step(){
+    ctx.clearRect(0,0,w,h);
+    particles.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0||p.x>w)p.vx*=-1;
+      if(p.y<0||p.y>h)p.vy*=-1;
+    });
+    /* connecting lines between nearby particles */
+    for(let i=0;i<particles.length;i++){
+      for(let j=i+1;j<particles.length;j++){
+        const a=particles[i],b=particles[j];
+        const dx=a.x-b.x,dy=a.y-b.y,dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<150){
+          ctx.strokeStyle='rgba(125,211,252,'+(0.18*(1-dist/150))+')';
+          ctx.lineWidth=1;
+          ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+        }
+      }
+    }
+    particles.forEach(p=>{
+      if(p.glow){
+        const isGold=p.gold;
+        const col=isGold?'251,240,16':'96,165,250';
+        const grad=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*9);
+        grad.addColorStop(0,'rgba('+col+',.5)');
+        grad.addColorStop(1,'rgba('+col+',0)');
+        ctx.fillStyle=grad;
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r*9,0,Math.PI*2);ctx.fill();
+      }
+      ctx.fillStyle=p.glow?(p.gold?'rgba(251,240,16,.9)':'rgba(147,197,253,.9)'):'rgba(147,197,253,.6)';
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+    });
+    raf=requestAnimationFrame(step);
+  }
+  resize();makeParticles();step();
+  window.addEventListener('resize',()=>{cancelAnimationFrame(raf);resize();makeParticles();step();});
+}
+initAuthParticles();
+
 /* ─── SYNC INDICATOR ─── */
 function sync(state,msg){
   const dot=ge('sdot'),lbl=ge('sync-lbl');
@@ -1691,6 +1942,16 @@ function sync(state,msg){
 /* ─── FIREBASE AUTH STATE ─── */
 auth.onAuthStateChanged(async user=>{
   if(!user){ge('auth-screen').classList.remove('gone');return;}
+  /* Force a fresh sign-in once per calendar day \u2014 with the login form now wired for
+     browser autofill, this is a single click rather than real friction each morning. */
+  const today=new Date().toISOString().split('T')[0];
+  const lastDay=localStorage.getItem('ohm_last_login_day');
+  if(lastDay&&lastDay!==today){
+    localStorage.removeItem('ohm_last_login_day');
+    await auth.signOut();
+    return;
+  }
+  localStorage.setItem('ohm_last_login_day',today);
   curUser=user;
   ge('auth-screen').classList.add('gone');
   const av=ge('sb-av');if(av)av.textContent=(user.email||'U')[0].toUpperCase();
@@ -1801,30 +2062,21 @@ async function init(){
 
 function subscribeReports(fromCache){
   if(unsubRep)unsubRep();
+  let firstSnap=true;
   unsubRep=db.collection('reports').orderBy('testDate','desc').limit(200)
     .onSnapshot(snap=>{
-      if(fromCache){
-        /* For cache-hit sessions, only update if Firestore data actually differs (checks count) */
-        const incoming=snap.docs.map(d=>d.data());
-        if(incoming.length!==reports.length||!fromCache){
-          reports=incoming;
-          writeCache(CACHE_KEYS.reports,reports);
-          trackOp('reads','reports',snap.docs.length||1);
-          refreshAll();
-        }else{
-          /* Update cache silently without counting as a "read" to user */
-          writeCache(CACHE_KEYS.reports,incoming);
-        }
-        fromCache=false;/* only skip first time */
-      }else{
-        reports=snap.docs.map(d=>d.data());
-        writeCache(CACHE_KEYS.reports,reports);
-        trackOp('reads','reports',snap.docs.length||1);
-        repLastDoc=snap.docs[snap.docs.length-1]||null;
-        repAllLoaded=snap.docs.length<200;
-        refreshAll();sync('ok');
-        if(!fromCache)toast('Connected ✓','success',2000);
-      }
+      /* ALWAYS apply the snapshot — the old code skipped updates when the report
+         count matched the cache, so edits made on another device never appeared. */
+      reports=snap.docs.map(d=>d.data());
+      writeCache(CACHE_KEYS.reports,reports);
+      /* ALWAYS set the pagination cursor — the old code never set repLastDoc on
+         cache-hit sessions, which permanently broke "load more" in History. */
+      repLastDoc=snap.docs[snap.docs.length-1]||null;
+      repAllLoaded=snap.docs.length<200;
+      if(!(fromCache&&firstSnap))trackOp('reads','reports',snap.docs.length||1);
+      refreshAll();sync('ok');
+      if(firstSnap&&!fromCache)toast('Connected ✓','success',2000);
+      firstSnap=false;
     },err=>{sync('err','Sync error');});
 }
 
@@ -1892,7 +2144,6 @@ async function forceRefreshAll(){
   await reloadFromFirebase();
 }
 async function forceRefreshAllUsers(){
-  // Write a timestamp to Firestore so all clients know to refresh
   if(!isAdmin){toast('Admin only','warn');return;}
   try{
     await db.collection('settings').doc('_forceRefresh').set({ts:new Date().toISOString(),by:curUser?.email});
@@ -1993,8 +2244,6 @@ function applyFeatureFlags(){
   if(clientsNi)clientsNi.style.display=getFt('clients')?'':'none';
   if(analyticsNi)analyticsNi.style.display=getFt('analytics')?'':'none';
   if(myrepNi)myrepNi.style.display=getFt('myreports')?'':'none';
-  const revCard=ge('an-rev-t');
-  if(revCard){const parent=revCard.closest('.card');if(parent)parent.style.display=getFt('revenue')?'':'none';}
   loadFeatureToggles();
 }
 function loadFeatureToggles(){
@@ -2003,7 +2252,7 @@ function loadFeatureToggles(){
     'ft-bulk':'bulk','ft-watermark':'watermark','ft-batchzip':'batchzip','ft-quicksearch':'quicksearch',
     'ft-certbadges':'certbadges','ft-lazyload':'lazyload','ft-expalert':'expalert',
     'ft-setupwarn':'setupwarn','ft-smtpwarn':'smtpwarn','ft-sidbadges':'sidbadges',
-    'ft-audit':'audit','ft-revenue':'revenue','ft-notice':'notice','ft-offline':'offline'};
+    'ft-audit':'audit','ft-notice':'notice','ft-offline':'offline'};
   Object.entries(map).forEach(([id,key])=>{const el=ge(id);if(el)el.checked=ftrs[key]!==false;});
   updateThemeBtns();
 }
@@ -2013,7 +2262,7 @@ function saveFeatureToggles(){
     'ft-bulk':'bulk','ft-watermark':'watermark','ft-batchzip':'batchzip','ft-quicksearch':'quicksearch',
     'ft-certbadges':'certbadges','ft-lazyload':'lazyload','ft-expalert':'expalert',
     'ft-setupwarn':'setupwarn','ft-smtpwarn':'smtpwarn','ft-sidbadges':'sidbadges',
-    'ft-audit':'audit','ft-revenue':'revenue','ft-notice':'notice','ft-offline':'offline'};
+    'ft-audit':'audit','ft-notice':'notice','ft-offline':'offline'};
   const features={...ftrs};
   Object.entries(map).forEach(([id,key])=>{const el=ge(id);if(el)features[key]=el.checked;});
   // Preserve defaultTheme from current cfg
@@ -2048,7 +2297,7 @@ function nav(page){
   if(page==='analytics')renderAnalytics();
   if(page==='renewals')renderRenewals();
   if(page==='audit')renderAudit();
-  if(page==='new-pat'){doPreview();updateSidePanel();}
+  if(page==='new-pat'){initNewForm(false);doPreview();updateSidePanel();}
   if(page==='my-reports')renderMyReports();
   if(page==='clients')renderClients();
 }
@@ -2063,20 +2312,39 @@ async function logAudit(action,detail,ref){
 /* ─── DASHBOARD ─── */
 function renderDashboard(){
   const now=new Date(),d30=new Date(now.getTime()+30*864e5);
+  const thisMonth=now.getMonth(),thisYear=now.getFullYear();
   let totApp=0,pass=0,expired=0,due30=0,engMap={};
+  let propertiesThisMonth=new Set(),propertiesAllTime=new Set();
+  let appliancesThisMonth=0,appliancesThisYear=0;
+
   reports.forEach(r=>{
     const ra=r.appliances||[];totApp+=ra.length;
     ra.forEach(a=>{if(a.result==='Pass')pass++;});
-    if(r.engineer)engMap[r.engineer]=(engMap[r.engineer]||0)+ra.length;
+    /* Top Engineer ranks by properties visited (reports), not appliance volume —
+       this app is about property coverage, not appliance-count throughput. */
+    if(r.engineer)engMap[r.engineer]=(engMap[r.engineer]||0)+1;
+    if(r.propertyAddress) propertiesAllTime.add(r.propertyAddress.split('\n')[0].trim().toLowerCase());
+
+    const rDate=new Date(r.testDate);
+    if(rDate.getMonth()===thisMonth&&rDate.getFullYear()===thisYear){
+      appliancesThisMonth+=ra.length;
+      if(r.propertyAddress) propertiesThisMonth.add(r.propertyAddress.split('\n')[0].trim());
+    }
+    if(rDate.getFullYear()===thisYear) appliancesThisYear+=ra.length;
+    
     if(r.status==='completed'&&ra.length){const e=earliest(r);if(e&&e<now)expired++;else if(e&&e<=d30)due30++;}
   });
-  setTxt('ds-rep',reports.length);setTxt('ds-app',totApp);
-  setTxt('ds-pass',totApp?Math.round(pass/totApp*100)+'%':'—');
+  setTxt('ds-rep',reports.length);setTxt('ds-pass',totApp?Math.round(pass/totApp*100)+'%':'—');
+  setTxt('ds-prop',propertiesAllTime.size);
   setTxt('ds-exp',expired);setTxt('ds-d30',due30);
   const topEng=Object.entries(engMap).sort((a,b)=>b[1]-a[1])[0];
   setTxt('ds-eng',topEng?topEng[0].split(' ')[0]:'—');
   const today=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
   setTxt('dash-sub','Welcome back — '+today);
+  
+  const insight=ge('dash-insight');
+  if(insight) insight.innerHTML='<strong>Smart Insights:</strong> '+appliancesThisMonth+' appliances this month · '+appliancesThisYear+' this year · '+propertiesThisMonth.size+' unique properties this month';
+
   const al=ge('dash-alerts');al.innerHTML='';
   if(getFt('setupwarn')&&(!cfg?.companyName||!cfg?.companyLogo))
     al.innerHTML+='<div class="alert ai"><span>⚠️</span><div><div class="at_">Setup Incomplete</div><div class="ab_">Company name or logo missing. '+(isAdmin?'<a href="#" onclick="nav(\'settings\')">Open Settings →</a>':'Contact your admin.')+'</div></div></div>';
@@ -2086,13 +2354,13 @@ function renderDashboard(){
     al.innerHTML+='<div class="alert ad"><span>⚠️</span><div><div class="at_">'+expired+' Expired Certificate'+(expired!==1?'s':'')+'</div><div class="ab_"><a href="#" onclick="nav(\'renewals\');setRF(\'ov\')">View Overdue →</a></div></div></div>';
   const rt=ge('dash-recent');rt.innerHTML='';
   [...reports].sort((a,b)=>new Date(b.testDate)-new Date(a.testDate)).slice(0,5).forEach(r=>{
-    rt.innerHTML+='<tr><td><strong>'+esc(r.refNumber)+'</strong></td><td>'+esc(r.landlordName||r.agencyName||'—')+'<small>'+esc((r.propertyAddress||'').split('\n')[0])+'</small></td><td style="white-space:nowrap;font-size:.8rem;">'+fd(r.testDate)+'</td><td><button class="btn btn-ghost btn-xs" onclick="editReport(\''+r.id+'\')">Edit ✏</button></td></tr>';
+    rt.innerHTML+='<tr><td><strong>'+esc((r.propertyAddress||'—').split('\n')[0])+'</strong></td><td><small>'+esc(r.refNumber)+' · '+esc(r.landlordName||r.agencyName||'—')+'</small></td><td style="white-space:nowrap;font-size:.8rem;">'+fd(r.testDate)+'</td><td><button class="btn btn-ghost btn-xs" onclick="editReport(\''+r.id+'\')"><i class="fa-solid fa-pen"></i> Edit</button></td></tr>';
   });
-  if(!reports.length)rt.innerHTML='<tr><td colspan="4"><div class="empty"><div class="empty-ico">📋</div><div class="empty-title">No reports yet</div><div class="empty-sub">Create your first PAT test</div></div></td></tr>';
+  if(!reports.length)rt.innerHTML='<tr><td colspan="4"><div class="empty"><div class="empty-ico">📋</div><div class="empty-title">No properties yet</div><div class="empty-sub">Create your first PAT test</div></div></td></tr>';
   const dt=ge('dash-due');dt.innerHTML='';
   const dueSoon=reports.filter(r=>r.status==='completed'&&(r.appliances||[]).length).map(r=>({...r,_e:earliest(r)})).filter(r=>r._e&&r._e<=d30).sort((a,b)=>a._e-b._e).slice(0,5);
   if(!dueSoon.length){dt.innerHTML='<tr><td colspan="4" style="color:var(--green);font-size:.88rem;padding:16px;">✅ Nothing due in 30 days</td></tr>';}
-  else{dueSoon.forEach(r=>{const ov=r._e<now;dt.innerHTML+='<tr><td><strong>'+esc(r.refNumber)+'</strong></td><td><small>'+esc((r.propertyAddress||'').split('\n')[0])+'</small></td><td style="color:'+(ov?'var(--red)':'var(--amber)');+';white-space:nowrap;font-size:.8rem;">'+fd(r._e.toISOString().split('T')[0])+(ov?' ⚠':'')+'</td><td><button class="btn btn-ghost btn-xs" onclick="renewCert(\''+r.id+'\')">🔄</button></td></tr>';});}
+  else{dueSoon.forEach(r=>{const ov=r._e<now;dt.innerHTML+='<tr><td><strong>'+esc((r.propertyAddress||'—').split('\n')[0])+'</strong></td><td><small>'+esc(r.refNumber)+'</small></td><td style="color:'+(ov?'var(--red)':'var(--amber)')+';white-space:nowrap;font-size:.8rem;">'+fd(r._e.toISOString().split('T')[0])+(ov?' ⚠':'')+'</td><td><button class="btn btn-ghost btn-xs" onclick="renewCert(\''+r.id+'\')"><i class="fa-solid fa-rotate"></i></button></td></tr>';});}
   const draft=localStorage.getItem('ohm_draft'),dc=ge('qc-draft');
   if(draft&&getFt('autosave')){try{const d=JSON.parse(draft);setTxt('qc-desc',(d.propertyAddress||'').split('\n')[0]||'Unsaved report');dc.classList.add('show');}catch(e){dc.classList.remove('show');}}
   else dc.classList.remove('show');
@@ -2103,13 +2371,23 @@ function renderChart(){
   const el=ge('dash-chart');if(!el)return;el.innerHTML='';
   const now=new Date();const months=[];
   for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({lbl:d.toLocaleString('en-GB',{month:'short'}),yr:d.getFullYear(),mo:d.getMonth()});}
-  const maxV=Math.max(1,...months.map(m=>reports.filter(r=>{const d=new Date(r.testDate);return d.getMonth()===m.mo&&d.getFullYear()===m.yr;}).reduce((s,r)=>s+(r.appliances||[]).length,0)));
-  months.forEach(m=>{
+  /* Property-centric: each bar is properties VISITED that month (unique addresses), split into
+     visits with no failed appliances (clean pass) vs visits that had at least one failed item. */
+  const monthData=months.map(m=>{
     const reps=reports.filter(r=>{const d=new Date(r.testDate);return d.getMonth()===m.mo&&d.getFullYear()===m.yr;});
-    const p=reps.reduce((s,r)=>s+(r.appliances||[]).filter(a=>a.result==='Pass').length,0);
-    const f=reps.reduce((s,r)=>s+(r.appliances||[]).filter(a=>a.result==='Fail').length,0);
-    const ph=Math.round(p/maxV*100),fh=Math.round(f/maxV*100);
-    el.innerHTML+='<div class="cbg"><div class="cbars"><div class="cbar pass" style="height:'+Math.max(ph,p>0?2:0)+'px;" title="'+p+' pass"></div><div class="cbar fail" style="height:'+Math.max(fh,f>0?2:0)+'px;" title="'+f+' fail"></div></div><div class="clbl">'+m.lbl+'</div></div>';
+    const seen=new Set();let clean=0,withFail=0;
+    reps.forEach(r=>{
+      const key=(r.propertyAddress||r.id||'').split('\n')[0].trim().toLowerCase();
+      if(seen.has(key))return;seen.add(key);
+      const hasFail=(r.appliances||[]).some(a=>a.result==='Fail');
+      if(hasFail)withFail++;else clean++;
+    });
+    return{...m,clean,withFail};
+  });
+  const maxV=Math.max(1,...monthData.map(m=>m.clean+m.withFail));
+  monthData.forEach(m=>{
+    const ph=Math.round(m.clean/maxV*100),fh=Math.round(m.withFail/maxV*100);
+    el.innerHTML+='<div class="cbg"><div class="cbars"><div class="cbar pass" style="height:'+Math.max(ph,m.clean>0?2:0)+'px;" title="'+m.clean+' properties, no failures"></div><div class="cbar fail" style="height:'+Math.max(fh,m.withFail>0?2:0)+'px;" title="'+m.withFail+' properties with a failed item"></div></div><div class="clbl">'+m.lbl+'</div></div>';
   });
 }
 
@@ -2153,6 +2431,8 @@ function fillForm(d){
   apps=d.appliances||[];
   if(!apps.length)addRow();else renderApps();
   setTxt('form-title',d.id?'Edit: '+d.refNumber:'New PAT Test');
+  const refEl=ge('pat-ref');
+  if(refEl) refEl.dataset.manual = d.id ? 'true' : 'false';
 }
 function initNewForm(force=false){
   if(!force&&getFt('autosave')){try{const r=localStorage.getItem('ohm_draft');if(r){fillForm(JSON.parse(r));return;}}catch(e){}}
@@ -2160,19 +2440,23 @@ function initNewForm(force=false){
   sv('report-id','');sv('pat-ref',genRef());sv('pat-status','draft');
   sv('pat-date',today);sv('pat-eng',cfg?.defaultEngineer||'');
   sv('pat-landlord','');sv('pat-agency','');sv('pat-addr','');sv('pat-phone','');sv('pat-email','');
+  const refEl=ge('pat-ref');
+  if(refEl) refEl.dataset.manual = 'false';
   setTxt('form-title','New PAT Test');
   apps=[];addRow();doPreview();updateSidePanel();
 }
 function clearForm(){if(!confirm('Clear form? Unsaved data will be lost.'))return;localStorage.removeItem('ohm_draft');initNewForm(true);toast('Form cleared','info');}
 function genRef(){
   let base=(cfg?.lastRefNumber||'OHM10000').split(' / ')[0].trim(),next=incStr(base);
-  const ex=new Set(reports.map(r=>r.refNumber.split(' / ')[0].trim().toLowerCase()));
+  const ex=new Set(reports.map(r=>(r.refNumber||'').split(' / ')[0].trim().toLowerCase()));
   while(ex.has(next.toLowerCase()))next=incStr(next);return next;
 }
 function incStr(s){const m=s.match(/^(.*?)(\d+)$/);return m?m[1]+String(parseInt(m[2],10)+1).padStart(m[2].length,'0'):s+'-1';}
 function updateRef(){
   if(!getFt('smartref'))return;
-  const base=gv('pat-ref').split(' / ')[0].trim();
+  const el=ge('pat-ref');
+  if(el&&el.dataset.manual==='true') return;
+  const base=(gv('pat-ref')||'').split(' / ')[0].trim();
   const addr=gv('pat-addr').trim();
   const short=addr.split(/\s+/).slice(0,3).join(' ');
   sv('pat-ref',short?base+' / '+short:base);
@@ -2191,43 +2475,71 @@ function addRow(data=null){
   const today=gv('pat-date')||new Date().toISOString().split('T')[0];
   const period=cfg?.defaultRetestPeriod||'12 Months';
   apps.push(data||{id:Date.now().toString(36)+Math.random().toString(36).substr(2,4),assetId:nextId,description:'',testInstrument:cfg?.defaultInstrument||'',date:today,retestPeriod:period,nextTest:calcNext(today,period),result:cfg?.defaultResult||'Pass'});
-  renderApps();schedSave();
+  renderApps({focusDesc:apps.length-1});schedSave();
 }
-function renderApps(){
-  const tbody=ge('app-tbody');if(!tbody)return;tbody.innerHTML='';
+function renderApps(opts={}){
+  const tbody=ge('app-tbody');if(!tbody)return;
+  
+  // Save focus state
+  let focusId=null,focusSel=null,focusScroll=null;
+  const active=document.activeElement;
+  if(active&&(active.tagName==='INPUT'||active.tagName==='TEXTAREA'||active.tagName==='SELECT')){
+    focusId=active.id;
+    if(active.selectionStart!==undefined) focusSel={s:active.selectionStart,e:active.selectionEnd};
+    focusScroll={top:active.scrollTop,left:active.scrollLeft};
+  }
+  
+  tbody.innerHTML='';
   apps.forEach((a,i)=>{
     const tr=document.createElement('tr');
-    tr.innerHTML='<td><input class="ti" value="'+esc(a.assetId)+'" onchange="upd('+i+',\'assetId\',this.value)" placeholder="A001"></td>'+
+    tr.innerHTML='<td><input class="ti" id="a'+i+'" value="'+esc(a.assetId)+'" onchange="upd('+i+',\'assetId\',this.value)" placeholder="A001"></td>'+
       '<td><div class="acw"><textarea id="d'+i+'" class="ti" style="height:30px;min-height:30px;resize:vertical;" onchange="upd('+i+',\'description\',this.value)" onkeydown="dTab(event,'+i+')">'+esc(a.description)+'</textarea></div></td>'+
-      '<td><input class="ti" value="'+esc(a.testInstrument)+'" onchange="upd('+i+',\'testInstrument\',this.value)"></td>'+
-      '<td><input type="date" class="ti" value="'+esc(a.date)+'" onchange="updDate('+i+',this.value)"></td>'+
-      '<td><select class="ts" onchange="updPer('+i+',this.value)">'+['3','6','12','24','48'].map(n=>'<option value="'+n+' Months"'+(a.retestPeriod===n+' Months'?' selected':'')+'>'+n+'m</option>').join('')+'</select></td>'+
+      '<td><input class="ti" id="i'+i+'" value="'+esc(a.testInstrument)+'" onchange="upd('+i+',\'testInstrument\',this.value)"></td>'+
+      '<td><input type="date" class="ti" id="t'+i+'" value="'+esc(a.date)+'" onchange="updDate('+i+',this.value)"></td>'+
+      '<td><select class="ts" id="p'+i+'" onchange="updPer('+i+',this.value)">'+['3','6','12','24','48'].map(n=>'<option value="'+n+' Months"'+(a.retestPeriod===n+' Months'?' selected':'')+'>'+n+'m</option>').join('')+'</select></td>'+
       '<td><input type="date" class="ti" value="'+esc(a.nextTest)+'" readonly style="opacity:.45;cursor:default;"></td>'+
-      '<td><select class="ts" onchange="upd('+i+',\'result\',this.value);this.style.color=this.value===\'Pass\'?\'var(--green2)\':\' var(--red2)\';" style="color:'+(a.result==='Pass'?'var(--green2)':'var(--red2)')+';font-weight:700;"><option value="Pass"'+(a.result==='Pass'?' selected':'')+'>Pass</option><option value="Fail"'+(a.result==='Fail'?' selected':'')+'>Fail</option></select></td>'+
+      '<td><select class="ts" id="r'+i+'" onchange="upd('+i+',\'result\',this.value);this.style.color=this.value===\'Pass\'?\'var(--green2)\':\' var(--red2)\';" style="color:'+(a.result==='Pass'?'var(--green2)':'var(--red2)')+';font-weight:700;"><option value="Pass"'+(a.result==='Pass'?' selected':'')+'>Pass</option><option value="Fail"'+(a.result==='Fail'?' selected':'')+'>Fail</option></select></td>'+
       '<td><button type="button" onclick="delRow('+i+')" style="background:none;border:none;color:var(--red2);cursor:pointer;padding:5px;font-size:1rem;">✕</button></td>';
     tbody.appendChild(tr);
     if(getFt('ac'))acSetup(ge('d'+i),()=>[...new Set(reports.flatMap(r=>(r.appliances||[]).map(a=>a.description)).filter(Boolean))],val=>upd(i,'description',val));
   });
+  
+  // Restore focus
+  if(focusId){
+    const el=ge(focusId);
+    if(el){
+      el.focus();
+      if(focusSel&&el.setSelectionRange) el.setSelectionRange(focusSel.s,focusSel.e);
+      if(focusScroll){el.scrollTop=focusScroll.top;el.scrollLeft=focusScroll.left;}
+    }
+  }
+  if(opts.focusDesc!==undefined){
+    setTimeout(()=>{const d=ge('d'+opts.focusDesc);if(d)d.focus();},0);
+  }
   updSum();
 }
-function dTab(e,i){if(e.key!=='Tab')return;e.preventDefault();upd(i,'description',e.target.value);if(i===apps.length-1)addRow();setTimeout(()=>{const d=ge('d'+(i+1));if(d)d.focus();},30);}
-function upd(i,f,v){if(apps[i])apps[i][f]=v;if(f!=='description')doPreview();else updSum();schedSave();updateSidePanel();}
+function dTab(e,i){if(e.key!=='Tab'||e.shiftKey)return;e.preventDefault();upd(i,'description',e.target.value);if(i===apps.length-1)addRow();setTimeout(()=>{const d=ge('d'+(i+1));if(d)d.focus();},30);}
+function upd(i,f,v){if(apps[i])apps[i][f]=v;doPreview();updSum();schedSave();updateSidePanel();}
 function updDate(i,v){
   if(!apps[i])return;
-  // If row 0 date changes, ask to propagate to all rows
-  if(i===0&&apps.length>1){
-    apps.forEach((a,idx)=>{a.date=v;a.nextTest=calcNext(v,a.retestPeriod);});
-    toast('Date applied to all '+apps.length+' rows','info');
-  } else {
-    apps[i].date=v;apps[i].nextTest=calcNext(v,apps[i].retestPeriod);
-  }
+  apps[i].date=v;apps[i].nextTest=calcNext(v,apps[i].retestPeriod);
   renderApps();doPreview();updateSidePanel();
 }
 function updPer(i,v){if(!apps[i])return;apps[i].retestPeriod=v;apps[i].nextTest=calcNext(apps[i].date,v);renderApps();doPreview();updateSidePanel();}
 function applyHeaderDate(v){
   if(!v||!apps.length)return;
-  apps.forEach(a=>{a.date=v;a.nextTest=calcNext(v,a.retestPeriod);});
-  renderApps();
+  const existingDates=[...new Set(apps.map(a=>a.date))];
+  if(existingDates.length===1&&existingDates[0]===v) return;
+  let changed=0;
+  if(existingDates.length===1&&!existingDates[0]){
+    apps.forEach(a=>{a.date=v;a.nextTest=calcNext(v,a.retestPeriod);changed++;});
+    toast('Date applied to all '+changed+' rows','info');
+  }else{
+    apps.forEach(a=>{if(!a.date){a.date=v;a.nextTest=calcNext(v,a.retestPeriod);changed++;}});
+    if(changed) toast('Date applied to '+changed+' empty rows','info');
+    else toast('Date not applied — rows already have dates. Use row date pickers to change individually.','info');
+  }
+  renderApps();doPreview();updateSidePanel();
 }
 function delRow(i){apps.splice(i,1);renderApps();doPreview();updateSidePanel();schedSave();}
 function updSum(){
@@ -2261,10 +2573,170 @@ function doBulkAdd(){
   toast('Added '+lines.length+' rows','success');
 }
 
+/* ─── HANDWRITING SCAN (AI) ─── */
+let _scanImgData=null,_scanResults=[];
+function openScanModal(){
+  _scanImgData=null;_scanResults=[];
+  ge('scan-preview').innerHTML='';
+  ge('scan-results-wrap').style.display='none';
+  ge('scan-go-btn').disabled=true;
+  ge('scan-go-btn').innerHTML='<i class="fa-solid fa-wand-magic-sparkles"></i> Scan Handwriting';
+  ge('scan-status').textContent='';
+  ge('scan-modal').classList.add('show');
+}
+function closeScanModal(){ge('scan-modal').classList.remove('show');}
+function handleScanFile(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      /* downscale to keep the request small \u2014 handwriting stays legible well below original camera resolution */
+      const maxDim=1600;let w=img.width,h=img.height;
+      if(w>maxDim||h>maxDim){const s=maxDim/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s);}
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      _scanImgData=cv.toDataURL('image/jpeg',0.85);
+      ge('scan-preview').innerHTML='<img src="'+_scanImgData+'" style="max-width:100%;max-height:260px;border-radius:8px;border:1px solid var(--b2);display:block;margin-top:6px;">';
+      ge('scan-go-btn').disabled=false;
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+async function runScan(){
+  if(!_scanImgData){toast('Choose a photo first','warn');return;}
+  const btn=ge('scan-go-btn');btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Reading handwriting...';
+  ge('scan-status').textContent='';
+  const b64=_scanImgData.split(',')[1];
+  let items=null,usedFallback=false;
+  if(cfg?.geminiKey){
+    try{items=await scanWithGemini(b64);}catch(e){console.error('Gemini scan failed',e);}
+  }
+  if(!items||!items.length){
+    usedFallback=true;
+    try{items=await scanWithOCRSpace(b64);}catch(e){console.error('OCR.space scan failed',e);toast('Scan failed: '+e.message,'error');}
+  }
+  btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-wand-magic-sparkles"></i> Re-Scan';
+  if(!items||!items.length){toast('No text detected \u2014 try a clearer, closer photo','warn');return;}
+  _scanResults=items.map(it=>({assetId:(it.assetId||'').toString().trim(),description:(it.description||'').toString().trim(),include:true}));
+  renderScanResults();
+  ge('scan-status').innerHTML=usedFallback
+    ?'<i class="fa-solid fa-triangle-exclamation" style="color:var(--amber);"></i> Used the free OCR fallback (no Gemini key set in Settings) \u2014 check these carefully.'
+    :'<i class="fa-solid fa-circle-check" style="color:var(--green);"></i> Scanned with Gemini \u2014 review before adding.';
+}
+async function scanWithGemini(b64){
+  const prompt='You are reading a handwritten PAT (Portable Appliance Test) log sheet. Extract every appliance row you can find. For each row return the asset ID (a short code, may be blank if illegible) and the appliance description. Respond with ONLY a raw JSON array, no markdown, no code fences, no commentary \u2014 exactly like: [{"assetId":"A001","description":"Kettle"}]. Use an empty string for any field you cannot read. Skip fully blank rows.';
+  const models=['gemini-2.5-flash-lite','gemini-2.5-flash'];/* try the cheap/fast model first, fall back if it errors or hits a rate limit */
+  let lastErr;
+  for(const model of models){
+    try{
+      const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+encodeURIComponent(cfg.geminiKey),{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:prompt},{inline_data:{mime_type:'image/jpeg',data:b64}}]}]})
+      });
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      const data=await res.json();
+      let txt=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+      txt=txt.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
+      const arr=JSON.parse(txt);
+      if(Array.isArray(arr))return arr;
+      throw new Error('Unexpected response shape');
+    }catch(e){lastErr=e;}
+  }
+  throw lastErr||new Error('Gemini scan failed');
+}
+/* Common appliance names for OCR spell-correction — the free OCR fallback has no
+   language understanding, so misreads get nudged toward the closest known appliance. */
+const APPLIANCE_DICT=['Kettle','Toaster','Microwave','Fridge','Freezer','Fridge Freezer','Washing Machine',
+  'Tumble Dryer','Dishwasher','Iron','Hairdryer','Straighteners','Fan Heater','Space Heater','Oil Heater',
+  'Vacuum Cleaner','Extension Lead','Extension Cable','Desk Lamp','Table Lamp','Floor Lamp','Computer Monitor',
+  'Monitor','Laptop','Laptop Charger','Phone Charger','Printer','Photocopier','Shredder','Projector',
+  'Coffee Machine','Water Boiler','Hot Water Urn','TV','Television','Radio','Speaker','Fan','Electric Heater',
+  'Router','Server','UPS','Amplifier','Drill','Extension Reel','Multi-Socket','Adaptor','Slow Cooker',
+  'Air Fryer','Hand Dryer','Water Cooler','Dehumidifier','Humidifier'];
+function levenshtein(a,b){
+  const m=a.length,n=b.length;const d=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);
+  for(let j=0;j<=n;j++)d[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){
+    d[i][j]=a[i-1]===b[j-1]?d[i-1][j-1]:1+Math.min(d[i-1][j],d[i][j-1],d[i-1][j-1]);
+  }
+  return d[m][n];
+}
+function spellCorrectAppliance(desc){
+  const trimmed=(desc||'').trim();if(!trimmed)return trimmed;
+  let best=null,bestDist=Infinity;
+  APPLIANCE_DICT.forEach(word=>{
+    const dist=levenshtein(trimmed.toLowerCase(),word.toLowerCase());
+    if(dist<bestDist){bestDist=dist;best=word;}
+  });
+  /* Only correct if it's a close, confident match — otherwise leave the OCR text alone
+     rather than risk overwriting something that isn't actually a misspelling. */
+  const threshold=Math.max(1,Math.floor(trimmed.length*0.34));
+  return(best&&bestDist<=threshold)?best:trimmed;
+}
+async function scanWithOCRSpace(b64){
+  /* Public no-signup demo key — shared, rate-limited, fine as a fallback but not for heavy daily use */
+  const body=new URLSearchParams();
+  body.set('apikey','helloworld');
+  body.set('base64Image','data:image/jpeg;base64,'+b64);
+  body.set('OCREngine','3');
+  body.set('scale','true');
+  const res=await fetch('https://api.ocr.space/parse/image',{method:'POST',body});
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  const data=await res.json();
+  const text=data?.ParsedResults?.[0]?.ParsedText||'';
+  if(!text.trim())throw new Error('No text detected');
+  /* Plain OCR gives us raw text, not fields, so we apply a rule: appliance descriptions never
+     contain digits on this log sheet, so ANY token containing a digit belongs to the Asset ID,
+     wherever it sits in the line — not just a leading token. Everything else is the description,
+     then nudged toward the closest known appliance name to fix common misreads. */
+  return text.split('\n').map(l=>l.trim()).filter(Boolean).map(line=>{
+    const tokens=line.split(/\s+/);
+    const idParts=[],descParts=[];
+    tokens.forEach(t=>{
+      const stripped=t.replace(/^[\(\[]+|[\)\].,:;\-]+$/g,'');
+      if(!stripped)return;
+      if(/\d/.test(stripped))idParts.push(stripped);else descParts.push(stripped);
+    });
+    return{assetId:idParts.join(' '),description:spellCorrectAppliance(descParts.join(' '))};
+  });
+}
+function renderScanResults(){
+  const wrap=ge('scan-results-wrap');wrap.style.display='block';
+  const list=ge('scan-results-list');
+  list.innerHTML=_scanResults.map((r,i)=>
+    '<div class="batch-item" style="align-items:flex-start;">'
+    +'<input type="checkbox" style="margin-top:9px;" '+(r.include?'checked':'')+' onchange="_scanResults['+i+'].include=this.checked">'
+    +'<div style="flex:1;display:flex;gap:8px;">'
+    +'<input class="ti" style="background:var(--s2);border:1px solid var(--b2);width:90px;flex-shrink:0;" value="'+esc(r.assetId)+'" placeholder="Asset ID" onchange="_scanResults['+i+'].assetId=this.value">'
+    +'<input class="ti" style="background:var(--s2);border:1px solid var(--b2);flex:1;" value="'+esc(r.description)+'" placeholder="Description" onchange="_scanResults['+i+'].description=this.value">'
+    +'</div></div>'
+  ).join('');
+  ge('scan-count').textContent=_scanResults.length+' row'+(_scanResults.length!==1?'s':'')+' detected';
+}
+function addScanResults(){
+  const chosen=_scanResults.filter(r=>r.include&&(r.assetId.trim()||r.description.trim()));
+  if(!chosen.length){toast('Select at least one row','warn');return;}
+  const today=gv('pat-date')||new Date().toISOString().split('T')[0];
+  const period=cfg?.defaultRetestPeriod||'12 Months';
+  chosen.forEach(r=>{
+    apps.push({id:Date.now().toString(36)+Math.random().toString(36).substr(2,4),assetId:r.assetId.trim(),description:r.description.trim(),testInstrument:cfg?.defaultInstrument||'',date:today,retestPeriod:period,nextTest:calcNext(today,period),result:cfg?.defaultResult||'Pass'});
+  });
+  renderApps();doPreview();updateSidePanel();closeScanModal();
+  toast('Added '+chosen.length+' row'+(chosen.length!==1?'s':'')+' from scan','success');
+  logAudit('create','Added '+chosen.length+' rows via handwriting scan','');
+}
+
 /* ─── SAVE / DELETE / EDIT ─── */
+function refNum(s){const m=String(s||'').split(' / ')[0].match(/(\d+)\s*$/);return m?parseInt(m[1],10):0;}
 async function saveReport(complete){
+  const refVal=gv('pat-ref');
+  if(!refVal.trim()){toast('Reference number is required','warn');return;}
+  if(!gv('pat-date')){toast('Test date is required','warn');return;}
+  if(complete&&!apps.some(a=>(a.description||'').trim()||(a.assetId||'').trim())){toast('Add at least one appliance before completing','warn');return;}
   sync('busy','Saving...');
-  const idVal=gv('report-id'),newId=idVal||Date.now().toString(),refVal=gv('pat-ref');
+  const idVal=gv('report-id'),newId=idVal||Date.now().toString();
   const report={id:newId,refNumber:refVal,status:complete?'completed':'draft',
     testDate:gv('pat-date'),engineer:gv('pat-eng'),
     landlordName:gv('pat-landlord'),agencyName:gv('pat-agency'),
@@ -2273,9 +2745,14 @@ async function saveReport(complete){
     createdBy:curUser?.email||'?',updatedAt:new Date().toISOString()};
   try{
     await db.collection('reports').doc(newId).set(report,{merge:true});
-    cfg.lastRefNumber=refVal.split(' / ')[0].trim();
-    await db.collection('settings').doc('appConfig').update({lastRefNumber:cfg.lastRefNumber}).catch(()=>{});
-    writeCache(CACHE_KEYS.settings,cfg);/* update settings cache */
+    /* Only advance the ref counter FORWARD — re-saving an old report (e.g. OHM10005
+       while the counter is at OHM10050) must not rewind it and cause duplicate refs. */
+    const newBase=refVal.split(' / ')[0].trim();
+    if(refNum(newBase)>refNum(cfg.lastRefNumber)){
+      cfg.lastRefNumber=newBase;
+      await db.collection('settings').doc('appConfig').update({lastRefNumber:cfg.lastRefNumber}).catch(()=>{});
+      writeCache(CACHE_KEYS.settings,cfg);/* update settings cache */
+    }
     trackOp('writes','reports',1);
     localStorage.removeItem('ohm_draft');
     const action=complete?'complete':idVal?'update':'create';
@@ -2296,16 +2773,46 @@ async function deleteReport(id){
     sync('ok');toast('Report deleted','info');
   }catch(e){toast('Delete failed: '+e.message,'error');sync('err');}
 }
+function draftWouldBeLost(){
+  try{const d=JSON.parse(localStorage.getItem('ohm_draft')||'null');
+    if(!d||d.id)return false;/* only protect unsaved NEW drafts */
+    return !!((d.propertyAddress||'').trim()||(d.landlordName||'').trim()||(d.agencyName||'').trim()||(d.appliances||[]).some(a=>(a.description||'').trim()||(a.assetId||'').trim()));
+  }catch(e){return false;}
+}
 function editReport(id){
   const r=reports.find(x=>x.id===id);if(!r){toast('Report not found','error');return;}
+  if(draftWouldBeLost()&&!confirm('You have an unsaved NEW report draft. Opening this report for editing will replace that draft. Continue?'))return;
   nav('new-pat');fillForm(r);doPreview();
 }
+let _renewSourceId=null;
 function renewCert(id){
   const r=reports.find(x=>x.id===id);if(!r)return;
+  if(draftWouldBeLost()&&!confirm('You have an unsaved NEW report draft. Starting a renewal will replace that draft. Continue?'))return;
+  _renewSourceId=id;
+  sv('renew-start-id','');
+  ge('renew-modal').classList.add('show');
+}
+function closeRenewModal(){ge('renew-modal').classList.remove('show');_renewSourceId=null;}
+function confirmRenew(){
+  const r=reports.find(x=>x.id===_renewSourceId);if(!r){closeRenewModal();return;}
+  const startId=(gv('renew-start-id')||'').trim();
+  closeRenewModal();
   nav('new-pat');
-  const d={...r,id:'',refNumber:genRef(),testDate:new Date().toISOString().split('T')[0],status:'draft',
-    appliances:(r.appliances||[]).map(a=>{const nd=new Date().toISOString().split('T')[0];return{...a,id:Date.now().toString(36)+Math.random().toString(36).substr(2,4),date:nd,nextTest:calcNext(nd,a.retestPeriod)};})};
-  fillForm(d);doPreview();toast('Renewal form loaded — review and save','info');
+  const nd=new Date().toISOString().split('T')[0];
+  /* If a new starting Asset ID was given, renumber every appliance from there (same
+     letters-prefix + incrementing-digits logic as Bulk Add) — this is a fresh test
+     cycle, so the old asset numbering shouldn't just carry over unless left blank. */
+  const renewedApps=(r.appliances||[]).map((a,idx)=>{
+    let assetId=a.assetId;
+    if(startId){
+      const m=startId.match(/^(.*?)(\d+)$/);
+      assetId=m?m[1]+String(parseInt(m[2],10)+idx).padStart(m[2].length,'0'):startId+(idx?'-'+(idx+1):'');
+    }
+    return{...a,id:Date.now().toString(36)+Math.random().toString(36).substr(2,4),assetId,date:nd,nextTest:calcNext(nd,a.retestPeriod)};
+  });
+  const d={...r,id:'',refNumber:genRef(),testDate:nd,status:'draft',appliances:renewedApps};
+  fillForm(d);doPreview();
+  toast(startId?'Renewal loaded \u2014 Asset IDs renumbered from '+esc(startId):'Renewal form loaded — review and save','info');
 }
 
 /* ─── HISTORY ─── */
@@ -2318,7 +2825,7 @@ function renderHistory(){
       if(ct==='expired'&&(!e||e>=now))return false;
       if(ct==='due'&&(!e||e<now||e>d30))return false;
       if(ct==='valid'&&e&&e<now)return false;}
-    if(q){const s=(r.refNumber+' '+r.landlordName+' '+r.agencyName+' '+r.propertyAddress+' '+r.engineer).toLowerCase();if(!s.includes(q))return false;}
+    if(q){const s=((r.refNumber||'')+' '+(r.landlordName||'')+' '+(r.agencyName||'')+' '+(r.propertyAddress||'')+' '+(r.engineer||'')).toLowerCase();if(!s.includes(q))return false;}
     return true;
   });
   rows.sort((a,b)=>{
@@ -2332,6 +2839,10 @@ function renderHistory(){
   const total=Math.ceil(rows.length/PER);if(histPage>total&&total>0)histPage=1;
   const page=rows.slice((histPage-1)*PER,histPage*PER);
   const tbody=ge('hist-tbody');tbody.innerHTML='';
+  
+  const chkAll=ge('hist-chk-all');
+  if(chkAll) chkAll.checked=false;
+  
   page.forEach(r=>{
     const ra=r.appliances||[],tot=ra.length,p=ra.filter(a=>a.result==='Pass').length;
     const pct=tot?Math.round(p/tot*100):0;
@@ -2353,9 +2864,10 @@ function renderHistory(){
       '<td><span style="color:'+(pct>=90?'var(--green2)':pct>=70?'var(--amber2)':'var(--red2)')+';font-weight:700;">'+pct+'%</span></td>'+
       '<td>'+certBadge+'</td>'+
       '<td>'+st2+'</td>'+
-      '<td style="white-space:nowrap;"><button class="btn btn-ghost btn-xs" onclick="editReport(\''+r.id+'\')" style="margin-right:3px;">✏</button>'+
-      '<button class="btn btn-ghost btn-xs" onclick="emailReport(\''+r.id+'\')" style="margin-right:3px;">✉</button>'+
-      '<button class="btn btn-ghost btn-xs" onclick="if(confirm(\'Delete this report?\'))deleteReport(\''+r.id+'\')" style="color:var(--red2);">🗑</button></td></tr>';
+      '<td style="white-space:nowrap;"><button class="btn btn-ghost btn-xs" onclick="editReport(\''+r.id+'\')" style="margin-right:3px;"><i class="fa-solid fa-pen"></i></button>'+
+      '<button class="btn btn-ghost btn-xs" onclick="copyText(\''+esc(jsq(r.refNumber))+'\')" style="margin-right:3px;" title="Copy Ref"><i class="fa-solid fa-copy"></i></button>'+
+      '<button class="btn btn-ghost btn-xs" onclick="emailReport(\''+r.id+'\')" style="margin-right:3px;"><i class="fa-solid fa-envelope"></i></button>'+
+      '<button class="btn btn-ghost btn-xs" onclick="if(confirm(\'Delete this report?\'))deleteReport(\''+r.id+'\')" style="color:var(--red2);"><i class="fa-solid fa-trash"></i></button></td></tr>';
   });
   if(!page.length)tbody.innerHTML='<tr><td colspan="10"><div class="empty"><div class="empty-ico">🔍</div><div class="empty-title">No results</div></div></td></tr>';
   const pager=ge('hist-pager');pager.innerHTML='';
@@ -2376,6 +2888,10 @@ function renderRenewals(){
   else if(rfFilter==='vl')rows=data.filter(r=>r._e>=now);
   rows.sort((a,b)=>a._e-b._e);
   const tbody=ge('ren-tbody');tbody.innerHTML='';
+  
+  const chkAllRen=ge('chk-all');
+  if(chkAllRen) chkAllRen.checked=false;
+  
   rows.forEach(r=>{
     const days=Math.ceil((r._e-now)/864e5);
     const dc=days<0?'var(--red2)':days<=30?'var(--amber2)':'var(--green2)';
@@ -2386,8 +2902,8 @@ function renderRenewals(){
       '<td>'+ra.length+'</td><td style="font-size:.8rem;">'+fd(r.testDate)+'</td>'+
       '<td style="font-size:.8rem;">'+fd(r._e.toISOString().split('T')[0])+'</td>'+
       '<td style="font-weight:700;color:'+dc+';">'+days+'d</td>'+
-      '<td><button class="btn btn-ghost btn-xs" onclick="emailReport(\''+r.id+'\')" style="margin-right:3px;">✉</button>'+
-      '<button class="btn btn-ghost btn-xs" onclick="renewCert(\''+r.id+'\')">🔄 Renew</button></td></tr>';
+      '<td><button class="btn btn-ghost btn-xs" onclick="emailReport(\''+r.id+'\')" style="margin-right:3px;"><i class="fa-solid fa-envelope"></i></button>'+
+      '<button class="btn btn-ghost btn-xs" onclick="renewCert(\''+r.id+'\')"><i class="fa-solid fa-rotate"></i> Renew</button></td></tr>';
   });
   if(!rows.length)tbody.innerHTML='<tr><td colspan="8"><div class="empty"><div class="empty-ico">🎉</div><div class="empty-title">No certificates in this view</div></div></td></tr>';
   document.querySelectorAll('.ren-chk').forEach(c=>c.addEventListener('change',updateRenBulk));
@@ -2456,17 +2972,6 @@ function renderAnalytics(){
   reps.forEach(r=>(r.appliances||[]).forEach(a=>{const k=(a.description||'Unknown').split('\n')[0].trim().substr(0,35);if(failMap[k])failMap[k].total++;}));
   Object.entries(failMap).sort((a,b)=>b[1].fail-a[1].fail).slice(0,10).forEach(([desc,v])=>{const rate=v.total?Math.round(v.fail/v.total*100):0;ft2.innerHTML+='<tr><td><small>'+esc(desc)+'</small></td><td style="color:var(--red2);">'+v.fail+'</td><td>'+rate+'%</td></tr>';});
   if(!Object.keys(failMap).length)ft2.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--green2);padding:16px;">No failures 🎉</td></tr>';
-  if(!getFt('revenue'))return;
-  const price=parseFloat(gv('an-price')||3),minC=parseFloat(gv('an-min')||75);
-  let totRev=0,monthRev=0;const nowM=now.getMonth(),nowY=now.getFullYear();
-  reps.forEach(r=>{if(r.status!=='completed')return;const ra=(r.appliances||[]).length;const rev=Math.max(minC,ra*price);totRev+=rev;const d=new Date(r.testDate);if(d.getMonth()===nowM&&d.getFullYear()===nowY)monthRev+=rev;});
-  const doneReps=reps.filter(r=>r.status==='completed');
-  const avgRev=doneReps.length?totRev/doneReps.length:0;
-  const pipeline=reports.filter(r=>r.status==='completed'&&earliest(r)&&earliest(r)<=new Date(now.getTime()+90*864e5)).reduce((s,r)=>s+Math.max(minC,(r.appliances||[]).length*price),0);
-  setTxt('an-rev-t','£'+Math.round(totRev).toLocaleString());
-  setTxt('an-rev-m','£'+Math.round(monthRev).toLocaleString());
-  setTxt('an-rev-a','£'+Math.round(avgRev).toLocaleString());
-  setTxt('an-rev-p','£'+Math.round(pipeline).toLocaleString());
 }
 
 /* ─── MY REPORTS ─── */
@@ -2482,7 +2987,7 @@ function renderMyReports(){
   page.forEach(r=>{
     const ra=r.appliances||[],tot2=ra.length,p2=ra.filter(a=>a.result==='Pass').length,pct=tot2?Math.round(p2/tot2*100):0;
     const st=r.status==='completed'?'<span class="badge bdone">Done</span>':'<span class="badge bdraft">Draft</span>';
-    tbody.innerHTML+='<tr><td><strong>'+esc(r.refNumber)+'</strong></td><td>'+esc(r.landlordName||r.agencyName||'—')+'<small>'+esc((r.propertyAddress||'').split('\n')[0])+'</small></td><td style="font-size:.8rem;">'+fd(r.testDate)+'</td><td>'+tot2+'</td><td><span style="color:'+(pct>=90?'var(--green2)':'var(--amber2)')+';">'+pct+'%</span></td><td>'+st+'</td><td><button class="btn btn-ghost btn-xs" onclick="editReport(\''+r.id+'\')">Edit ✏</button></td></tr>';
+    tbody.innerHTML+='<tr><td><strong>'+esc(r.refNumber)+'</strong></td><td>'+esc(r.landlordName||r.agencyName||'—')+'<small>'+esc((r.propertyAddress||'').split('\n')[0])+'</small></td><td style="font-size:.8rem;">'+fd(r.testDate)+'</td><td>'+tot2+'</td><td><span style="color:'+(pct>=90?'var(--green2)':'var(--amber2)')+';">'+pct+'%</span></td><td>'+st+'</td><td><button class="btn btn-ghost btn-xs" onclick="editReport(\''+r.id+'\')"><i class="fa-solid fa-pen"></i> Edit</button></td></tr>';
   });
   if(!page.length)tbody.innerHTML='<tr><td colspan="7"><div class="empty"><div class="empty-ico">📋</div><div class="empty-title">No reports yet</div></div></td></tr>';
   const pager=ge('myrep-pager');pager.innerHTML='';
@@ -2509,7 +3014,7 @@ function renderClients(){
   const tbody=ge('clients-tbody');tbody.innerHTML='';
   page.forEach(c=>{
     const pct=c.apps?Math.round(c.pass/c.apps*100):0;
-    tbody.innerHTML+='<tr><td><strong>'+esc(c.name)+'</strong></td><td>'+c.properties.size+'</td><td>'+c.reports+'</td><td>'+c.apps+'</td><td><span style="color:'+(pct>=90?'var(--green2)':'var(--amber2)')+';">'+pct+'%</span></td><td style="font-size:.8rem;">'+fd(c.last)+'</td><td><button class="btn btn-ghost btn-xs" onclick="ge(\'hist-q\').value=\''+esc(c.name)+'\';nav(\'history\');renderHistory();">View Reports →</button></td></tr>';
+    tbody.innerHTML+='<tr><td><strong>'+esc(c.name)+'</strong></td><td>'+c.properties.size+'</td><td>'+c.reports+'</td><td>'+c.apps+'</td><td><span style="color:'+(pct>=90?'var(--green2)':'var(--amber2)')+';">'+pct+'%</span></td><td style="font-size:.8rem;">'+fd(c.last)+'</td><td><button class="btn btn-ghost btn-xs" onclick="ge(\'hist-q\').value=\''+esc(jsq(c.name))+'\';nav(\'history\');renderHistory();">View Reports →</button></td></tr>';
   });
   if(!page.length)tbody.innerHTML='<tr><td colspan="7"><div class="empty"><div class="empty-ico">🏢</div><div class="empty-title">No clients found</div></div></td></tr>';
   const pager=ge('clients-pager');pager.innerHTML='';
@@ -2550,7 +3055,10 @@ function doPreview(){
     :'<div style="font-size:18px;font-weight:900;color:'+hc+';font-family:DM Sans,sans-serif;">'+esc(cfg?.companyName||'')+'</div>';
   const pat1=cfg?.patLogo?'<div class="a4-flogo"><img src="'+cfg.patLogo+'"></div>':'';
   const pat2=cfg?.patLogo2?'<div class="a4-flogo"><img src="'+cfg.patLogo2+'"></div>':'';
-  const sigHTML=cfg?.engineerSignature?'<img src="'+cfg.engineerSignature+'" style="max-height:24px;vertical-align:middle;">':'________________';
+  /* Signature image now fills the width of its box (same length as the "Authorised Signature"
+     label above it) rather than a tiny fixed-height thumbnail — the bordered box itself stays
+     the same footprint, the image just scales to use the space inside it properly. */
+  const sigHTML=cfg?.engineerSignature?'<img src="'+cfg.engineerSignature+'" style="width:100%;max-height:30px;object-fit:contain;object-position:left center;display:block;">':'________________';
   const certTitle=cfg?.certTitle||'PORTABLE APPLIANCE TEST REPORT';
   const rp1=parseInt(cfg?.rowsP1||14),rpn=parseInt(cfg?.rowsPN||24);
   const fbase=cfg?.baseFont||'0.7rem',fhdr=cfg?.hdrFont||'0.85rem',ftitle=cfg?.titleFont||'20px',fth=cfg?.thFont||'0.7rem',ftd=cfg?.tdFont||'0.8rem';
@@ -2568,7 +3076,7 @@ function doPreview(){
       let cb='';
       if(landlord)cb+='<div><div class="a4-key">Landlord</div><div class="a4-val">'+esc(landlord)+'</div></div>';
       if(client)cb+='<div style="margin-top:5px;"><div class="a4-key">Client</div><div class="a4-val">'+esc(client)+'</div></div>';
-      if(addr)cb+='<div style="margin-top:5px;"><div class="a4-key">Address</div><div class="a4-val" style="white-space:pre-line;">'+esc(addr)+'</div></div>';
+      if(addr)cb+='<div style="margin-top:5px;"><div class="a4-key">Property Address</div><div class="a4-val" style="white-space:pre-line;font-weight:600;">'+esc(addr)+'</div></div>';
       if(!cb)cb='<span style="color:#94a3b8;">—</span>';
       hdr='<div class="a4-topbar"><div><strong>Date:</strong> '+testDate+'</div><div><strong>Ref:</strong> '+esc(ref)+'</div></div>'
         +'<div class="a4-hdr"><div class="a4-logo">'+logoHTML+'</div>'
@@ -2578,14 +3086,25 @@ function doPreview(){
         +'<div class="a4-box"><div class="a4-key">Testing Company</div>'
         +'<div class="a4-val" style="font-weight:700;margin-bottom:2px;">'+esc(cfg?.companyName||'')+'</div>'
         +'<div style="font-size:.7rem;color:#64748b;white-space:pre-line;margin-bottom:5px;">'+esc(cfg?.companyAddress||'')+'</div>'
-        +'<div style="font-size:.74rem;display:flex;align-items:center;gap:10px;flex-wrap:nowrap;white-space:nowrap;overflow:hidden;"><span><strong>Engineer:</strong> '+esc(eng)+'</span><span style="flex-shrink:0;"><strong>'+esc(cfg?.sigLabel||'Signature:')+'</strong> '+sigHTML+'</span></div>'
+        +'<div style="display:flex;gap:6px;margin-top:2px;">'
+        +'<div style="flex:1;border:1px solid #cbd5e1;border-radius:4px;background:rgba(255,255,255,.55);padding:4px 8px;">'
+        +'<div style="font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:2px;">Engineer</div>'
+        +'<div style="font-size:.74rem;font-weight:600;color:#1e293b;">'+esc(eng)+'</div>'
+        +'</div>'
+        +'<div style="flex:1;border:1px solid #cbd5e1;border-radius:4px;background:rgba(255,255,255,.55);padding:4px 8px;min-height:36px;display:flex;flex-direction:column;justify-content:center;">'
+        +'<div style="font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:2px;">'+esc((cfg?.sigLabel||'Signature').replace(/:\s*$/,''))+'</div>'
+        +'<div>'+sigHTML+'</div>'
+        +'</div>'
+        +'</div>'
         +'</div></div>'
         +(cfg?.certNotes?'<div style="margin-top:6px;padding:5px 9px;background:#fefce8;border:1px solid #fde68a;border-radius:4px;font-size:.68rem;color:#78350f;line-height:1.4;">'+esc(cfg.certNotes)+'</div>':'')
         +(cfg?.regText?'<div style="margin-top:4px;font-size:.62rem;color:#64748b;line-height:1.4;">'+esc(cfg.regText)+(cfg?.cop?' · '+esc(cfg.cop):'')+'</div>':'');
     }
     const empty=pg.cap-(pg.items.reduce((s,a)=>s+a._c,0));
-    let rows=pg.items.map(app=>'<tr><td style="height:'+(app._c*28)+'px;vertical-align:middle;">'+esc(app.assetId)+'</td><td style="height:'+(app._c*28)+'px;vertical-align:middle;white-space:pre-wrap;word-break:break-word;">'+esc(app._d)+'</td><td>'+esc(app.testInstrument)+'</td><td>'+fd(app.date)+'</td><td>'+app.retestPeriod+'</td><td>'+fd(app.nextTest)+'</td><td><span class="cbadge '+(app.result==='Pass'?'pass':'fail')+'">'+app.result+'</span></td></tr>').join('');
-    for(let i=0;i<empty;i++)rows+='<tr style="background:'+(i%2===0?rowBg:'')+'"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>';
+    /* Zebra stripe runs continuously across real rows AND the empty filler rows below them,
+       so the pattern doesn't visibly restart/jump where real data ends. */
+    let rows=pg.items.map((app,i)=>'<tr style="background:'+(i%2===0?rowBg:'')+'"><td style="height:'+(app._c*28)+'px;vertical-align:middle;">'+esc(app.assetId)+'</td><td style="height:'+(app._c*28)+'px;vertical-align:middle;white-space:pre-wrap;word-break:break-word;">'+esc(app._d)+'</td><td>'+esc(app.testInstrument)+'</td><td>'+fd(app.date)+'</td><td>'+app.retestPeriod+'</td><td>'+fd(app.nextTest)+'</td><td><span class="cbadge '+(app.result==='Pass'?'pass':'fail')+'">'+app.result+'</span></td></tr>').join('');
+    for(let i=0;i<empty;i++)rows+='<tr style="background:'+((pg.items.length+i)%2===0?rowBg:'')+'"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>';
     const draftClass=(isDraft&&getFt('watermark'))?' draft-wm':'';
     wrap.innerHTML+='<div class="a4'+draftClass+'" style="--fbase:'+fbase+';--fhdr:'+fhdr+';--ftitle:'+ftitle+';--fth:'+fth+';--ftd:'+ftd+';">'+hdr
       +'<div style="flex-grow:1;"><table class="a4t" style="font-family:DM Sans,Arial,sans-serif;"><thead><tr>'
@@ -2629,6 +3148,11 @@ function updateSidePanel(){
     else{sd.className='sw-cert-status complete';if(sdot)sdot.textContent='✓';sl.textContent='Complete';}
   }
 
+  // Property summary
+  const propAddr=ge('sw-prop-addr'),propClient=ge('sw-prop-client');
+  if(propAddr) propAddr.textContent=(gv('pat-addr')||'').split('\n')[0]||'—';
+  if(propClient) propClient.textContent=(gv('pat-landlord')||gv('pat-agency')||'No client set');
+
   // Counts
   if(ge('sw-app-count'))ge('sw-app-count').textContent=total;
   if(ge('sw-pass-count'))ge('sw-pass-count').textContent=pass;
@@ -2645,7 +3169,7 @@ function updateSidePanel(){
     rf.style.strokeDashoffset=C-failArc;
     // Offset fail arc to start where pass ends
     rf.style.strokeDasharray=failArc+' '+(C-failArc);
-    const rotate=-90+(pass/total*360);
+    const rotate=total?-90+(pass/total*360):-90;
     rf.style.transform='rotate('+rotate+'deg)';
     rf.style.transformOrigin='35px 35px';
   }
@@ -2704,7 +3228,6 @@ function printCertificate(){
   doPreview();
   setTimeout(()=>{
     if(!apps.length){toast('Add appliances first','warn');return;}
-    // Build print target with A4 pages cloned from preview
     const src=ge('cert-pages');
     const target=ge('print-target');
     target.innerHTML='';
@@ -2712,13 +3235,18 @@ function printCertificate(){
     if(!pages.length){toast('Generate preview first','warn');return;}
     pages.forEach(p=>{
       const clone=p.cloneNode(true);
-      // Remove draft watermark CSS class from clone so it prints clean
       clone.classList.remove('draft-wm');
       target.appendChild(clone);
     });
+    /* The browser's own "Save as PDF" option in the print dialog suggests document.title as
+       the filename — swap it to the report ref just for the print, then put it back. */
+    const ref=gv('pat-ref')||'Draft';
+    const prevTitle=document.title;
+    document.title='PAT_'+ref.replace(/[^\w-]/g,'_');
+    const restoreTitle=()=>{document.title=prevTitle;window.removeEventListener('afterprint',restoreTitle);};
+    window.addEventListener('afterprint',restoreTitle);
     window.print();
-    // Clean up after print dialog closes
-    setTimeout(()=>{target.innerHTML='';},2000);
+    setTimeout(()=>{target.innerHTML='';restoreTitle();},2000);
   },400);
 }
 async function downloadPDF(){
@@ -2731,93 +3259,38 @@ async function downloadPDF(){
   const overlay=ge('pdf-overlay'),overlayMsg=ge('pdf-overlay-msg');
   if(overlay)overlay.classList.add('show');
 
-  // Temporarily remove box-shadow/border-radius for clean capture
-  pageEls.forEach(p=>{p.dataset.savedShadow=p.style.boxShadow;p.dataset.savedRadius=p.style.borderRadius;p.style.boxShadow='none';p.style.borderRadius='0';});
+  pageEls.forEach(p=>{
+    p.dataset.savedShadow=p.style.boxShadow;
+    p.dataset.savedRadius=p.style.borderRadius;
+    p.style.boxShadow='none';
+    p.style.borderRadius='0';
+  });
 
   try{
-    if(pageEls.length===1){
-      // Single page — simple capture
-      if(overlayMsg)overlayMsg.textContent='Rendering page 1…';
-      await html2pdf().set({
-        margin:0,
-        filename:'PAT_'+ref.replace(/[^\w-]/g,'_')+'.pdf',
-        image:{type:'jpeg',quality:0.98},
-        html2canvas:{scale:2.5,useCORS:true,backgroundColor:'#ffffff',logging:false,allowTaint:false,foreignObjectRendering:false},
-        jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
-      }).from(pageEls[0]).save();
-    } else {
-      // Multi-page: render each page to canvas individually, then assemble into one PDF
-      if(overlayMsg)overlayMsg.textContent='Rendering '+pageEls.length+' pages…';
-
-      // Use html2pdf's worker to render each page to a data URL, then add to jsPDF
-      // Approach: capture each .a4 to canvas, build PDF page by page
-      const canvases=[];
-      for(let i=0;i<pageEls.length;i++){
-        if(overlayMsg)overlayMsg.textContent='Page '+(i+1)+' of '+pageEls.length+'…';
-        const p=pageEls[i];
-        // Scroll page into view so html2canvas can see it
-        p.scrollIntoView({block:'start'});
-        await new Promise(r=>setTimeout(r,60));
-        const canvas=await html2canvas(p,{
-          scale:2.5,
-          useCORS:true,
-          backgroundColor:'#ffffff',
-          logging:false,
-          allowTaint:false,
-          foreignObjectRendering:false,
-          // Capture in-place (no scrolling offset)
-          x:0,y:0,
-          width:p.offsetWidth,
-          height:p.offsetHeight
-        });
-        canvases.push(canvas);
-      }
-
-      // Build PDF with jsPDF directly (bundled with html2pdf)
-      const PDFClass=window.jsPDF||window.jspdf?.jsPDF;
-      if(!PDFClass)throw new Error('jsPDF not available');
-      const pdf=new PDFClass({unit:'mm',format:'a4',orientation:'portrait'});
-      const W=210,H=297;
-      for(let i=0;i<canvases.length;i++){
-        if(i>0)pdf.addPage();
-        const imgData=canvases[i].toDataURL('image/jpeg',0.98);
-        pdf.addImage(imgData,'JPEG',0,0,W,H,'','FAST');
-      }
-      pdf.save('PAT_'+ref.replace(/[^\w-]/g,'_')+'.pdf');
+    /* Render each .a4 page to its own canvas and add it as its own PDF page directly,
+       one-to-one, via jsPDF \u2014 this sidesteps html2pdf's own page-break detection
+       entirely (the repeated source of extra blank pages between real ones) rather than
+       tuning its config again. jsPDF/html2canvas are exposed globally by the html2pdf
+       bundle script already loaded on this page. */
+    const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+    for(let i=0;i<pageEls.length;i++){
+      if(overlayMsg)overlayMsg.textContent='Rendering page '+(i+1)+' of '+pageEls.length+'...';
+      const canvas=await html2canvas(pageEls[i],{scale:4,useCORS:true,backgroundColor:'#ffffff',logging:false,allowTaint:false});
+      const imgData=canvas.toDataURL('image/png');
+      if(i>0)pdf.addPage('a4','portrait');
+      pdf.addImage(imgData,'PNG',0,0,210,297,undefined,'FAST');
     }
+    pdf.save('PAT_'+ref.replace(/[^\w-]/g,'_')+'.pdf');
     toast('PDF downloaded ✓','success');
     logAudit('create','PDF downloaded',ref);
   }catch(e){
     console.error('PDF error:',e);
-    // Fallback: try single-container approach
-    try{
-      if(overlayMsg)overlayMsg.textContent='Trying fallback render…';
-      const container=document.createElement('div');
-      container.style.cssText='width:210mm;background:white;position:absolute;top:0;left:0;z-index:-1;';
-      pageEls.forEach((p,i)=>{
-        const clone=p.cloneNode(true);
-        clone.style.cssText='background:white;width:210mm;min-height:297mm;padding:12mm 16mm 14mm;box-sizing:border-box;display:flex;flex-direction:column;page-break-after:always;break-after:page;box-shadow:none;border-radius:0;';
-        container.appendChild(clone);
-      });
-      document.body.appendChild(container);
-      await new Promise(r=>setTimeout(r,200));
-      await html2pdf().set({
-        margin:0,
-        filename:'PAT_'+ref.replace(/[^\w-]/g,'_')+'.pdf',
-        image:{type:'jpeg',quality:0.95},
-        html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false},
-        jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
-        pagebreak:{mode:['css','legacy']}
-      }).from(container).save();
-      document.body.removeChild(container);
-      toast('PDF downloaded ✓','success');
-    }catch(e2){
-      console.error('PDF fallback error:',e2);
-      toast('PDF failed — try Print → Save as PDF instead','error');
-    }
-  }
-  finally{
-    pageEls.forEach(p=>{p.style.boxShadow=p.dataset.savedShadow||'';p.style.borderRadius=p.dataset.savedRadius||'';});
+    toast('PDF failed — try Print → Save as PDF instead','error');
+  }finally{
+    pageEls.forEach(p=>{
+      p.style.boxShadow=p.dataset.savedShadow||'';
+      p.style.borderRadius=p.dataset.savedRadius||'';
+    });
     if(overlay)overlay.classList.remove('show');
   }
 }
@@ -2825,7 +3298,7 @@ function buildEmail(r){
   const client=r.landlordName||r.agencyName||'Valued Client';
   const addr=(r.propertyAddress||'').replace(/\n/g,', ');
   const e=earliest(r);const due=fd(e?e.toISOString().split('T')[0]:'');
-  let body=(cfg.emailBody||DEFS.emailBody).replace(/{client}/g,client).replace(/{ref}/g,r.refNumber).replace(/{address}/g,addr).replace(/{due}/g,due).replace(/{company}/g,cfg.companyName||'').replace(/{phone}/g,cfg.contactPhone||'').replace(/{email}/g,cfg.email||'');
+  let body=(cfg.emailBody||DEFS.emailBody).replace(/\\n/g,'\n').replace(/{client}/g,client).replace(/{ref}/g,r.refNumber).replace(/{address}/g,addr).replace(/{due}/g,due).replace(/{company}/g,cfg.companyName||'').replace(/{phone}/g,cfg.contactPhone||'').replace(/{email}/g,cfg.email||'');
   const subj=(cfg.emailSubject||DEFS.emailSubject).replace(/{ref}/g,r.refNumber).replace(/{address}/g,addr).replace(/{date}/g,fd(r.testDate)).replace(/{company}/g,cfg.companyName||'');
   return{to:r.emailAddress||cfg.defEmail||'',cc:cfg.smtpCC||'',subj,body};
 }
@@ -2834,7 +3307,7 @@ function emailReport(id){const r=reports.find(x=>x.id===id);if(!r)return;const{t
 function testSMTP(){
   const testTo=gv('s-test-addr').trim();if(!testTo){toast('Enter a test email address first','warn');return;}
   const st=ge('smtp-st');st.className='smtp-st smtp-idle';st.textContent='⬤ Testing...';
-  window.location.href='mailto:'+testTo+'?subject='+encodeURIComponent('SMTP Test — OHM PAT Manager v9')+'&body='+encodeURIComponent('This is a test email from OHM PAT Manager v9.\n\nIf you received this, your email setup is working correctly.\n\nSent: '+new Date().toLocaleString('en-GB'));
+  window.location.href='mailto:'+testTo+'?subject='+encodeURIComponent('SMTP Test — DeepFlow PAT')+'&body='+encodeURIComponent('This is a test email from DeepFlow PAT.\n\nIf you received this, your email setup is working correctly.\n\nSent: '+new Date().toLocaleString('en-GB'));
   setTimeout(()=>{st.className='smtp-st smtp-ok';st.textContent='✓ Email client opened';},600);
 }
 
@@ -2846,7 +3319,8 @@ async function loadNotice(){
     if(doc.exists&&doc.data().title){
       const n=doc.data();
       const dismissed=localStorage.getItem('ohm_notice_dismissed');
-      if(dismissed===n.title)return;
+      if(dismissed===(n.ts||n.title))return;/* key on publish timestamp so re-publishing shows again */
+      window._noticeKey=n.ts||n.title;
       ge('notice-title').textContent=n.title||'';ge('notice-body').textContent=n.body||'';
       ge('notice-date').textContent=n.ts?'Posted: '+fd(n.ts.split('T')[0]):'';
       ge('notice-bar').classList.add('show');
@@ -2873,8 +3347,7 @@ async function clearNotice(){
   }catch(e){toast('Failed','error');}
 }
 function dismissNotice(){
-  const t=ge('notice-title').textContent;
-  if(t)localStorage.setItem('ohm_notice_dismissed',t);
+  if(window._noticeKey)localStorage.setItem('ohm_notice_dismissed',window._noticeKey);
   ge('notice-bar').classList.remove('show');
 }
 async function loadNoticeSettings(){
@@ -2994,10 +3467,15 @@ async function buildOffscreenPDF(r){
         +'<b>Engineer:</b> '+esc(r.engineer||'—')+'</div></div>';
     }
     const empty=pg.cap-(pg.items.reduce((s,a)=>s+a._c,0));
-    let rows=pg.items.map(app=>'<tr><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;">'+esc(app.assetId)+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;white-space:pre-wrap;">'+esc(app._d)+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;">'+esc(app.testInstrument)+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;">'+fd(app.date)+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;">'+app.retestPeriod+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;">'+fd(app.nextTest)+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;"><span style="padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;background:'+(app.result==='Pass'?'#d1fae5':'#fee2e2')+';color:'+(app.result==='Pass'?'#065f46':'#991b1b')+';">'+app.result+'</span></td></tr>').join('');
-    for(let i=0;i<empty;i++)rows+='<tr style="height:28px;background:'+(i%2===0?rowBg:'')+'"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
+    /* Same continuous zebra stripe fix applied to the standalone PDF-page builder. */
+    let rows=pg.items.map((app,i)=>'<tr style="background:'+(i%2===0?rowBg:'')+'"><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;">'+esc(app.assetId)+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;white-space:pre-wrap;">'+esc(app._d)+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;">'+esc(app.testInstrument)+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;">'+fd(app.date)+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;">'+app.retestPeriod+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;">'+fd(app.nextTest)+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;"><span style="padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;background:'+(app.result==='Pass'?'#d1fae5':'#fee2e2')+';color:'+(app.result==='Pass'?'#065f46':'#991b1b')+';">'+app.result+'</span></td></tr>').join('');
+    for(let i=0;i<empty;i++)rows+='<tr style="height:28px;background:'+((pg.items.length+i)%2===0?rowBg:'')+'"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
     const pageDiv=document.createElement('div');
     pageDiv.style.cssText='background:#fff;width:794px;min-height:1123px;padding:50px 53px;box-sizing:border-box;display:flex;flex-direction:column;';
+    if(pi < pages.length-1){
+      pageDiv.style.pageBreakAfter='always';
+      pageDiv.style.breakAfter='page';
+    }
     pageDiv.innerHTML=hdr+'<div style="flex-grow:1;"><table style="width:100%;border-collapse:collapse;"><thead><tr>'
       +'<th style="background:'+hc+';color:'+htc+';padding:7px 5px;text-align:left;font-size:10px;text-transform:uppercase;width:11%;">Asset ID</th>'
       +'<th style="background:'+hc+';color:'+htc+';padding:7px 5px;text-align:left;font-size:10px;text-transform:uppercase;width:30%;">Description</th>'
@@ -3015,14 +3493,25 @@ async function buildOffscreenPDF(r){
   });
   let pdfBytes;
   try{
-    pdfBytes=await html2pdf().set({margin:0,filename:'tmp.pdf',image:{type:'jpeg',quality:0.98},html2canvas:{scale:3,useCORS:true,backgroundColor:'#fff',logging:false},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['avoid-all','css','legacy']}}).from(wrap).outputPdf('arraybuffer');
+    /* Same fix as the single-report download: render each page div to its own canvas and
+       add it as its own PDF page directly via jsPDF, instead of relying on html2pdf's own
+       page-break detection (the repeated source of extra blank pages). */
+    const pageDivs=[...wrap.children];
+    const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+    for(let i=0;i<pageDivs.length;i++){
+      const canvas=await html2canvas(pageDivs[i],{scale:4,useCORS:true,backgroundColor:'#fff',logging:false});
+      const imgData=canvas.toDataURL('image/png');
+      if(i>0)pdf.addPage('a4','portrait');
+      pdf.addImage(imgData,'PNG',0,0,210,297,undefined,'FAST');
+    }
+    pdfBytes=pdf.output('arraybuffer');
   }finally{if(document.body.contains(wrap))document.body.removeChild(wrap);}
   return pdfBytes;
 }
 
 /* ─── SETTINGS ─── */
 function stab(t){
-  const tabs=['company','branding','email','defaults','cert','features','users','notice','usage','firebase','data'];
+  const tabs=['company','branding','email','defaults','scan','cert','features','users','notice','usage','firebase','data'];
   document.querySelectorAll('.stab').forEach((el,i)=>el.classList.toggle('on',tabs[i]===t));
   document.querySelectorAll('.spanel').forEach(p=>p.classList.remove('on'));
   const panel=ge('sp-'+t);if(panel)panel.classList.add('on');
@@ -3047,7 +3536,8 @@ function loadSettingsUI(){
     's-rp1':'rowsP1','s-rpn':'rowsPN',
     's-ctitle':'certTitle','s-siglbl':'sigLabel','s-notes':'certNotes',
     's-reg':'regText','s-cop':'cop','s-scheme':'scheme','s-accred':'accred',
-    's-fbase':'baseFont','s-fhdr':'hdrFont','s-ftitle':'titleFont','s-fth':'thFont','s-ftd':'tdFont'
+    's-fbase':'baseFont','s-fhdr':'hdrFont','s-ftitle':'titleFont','s-fth':'thFont','s-ftd':'tdFont',
+    's-gemini-key':'geminiKey'
   };
   Object.entries(map).forEach(([id,key])=>{const el=ge(id);if(el&&cfg[key]!==undefined)el.value=cfg[key];});
   const colMap={'s-ch':'colHeader','s-cht':'colHText','s-cr':'colRow'};
@@ -3076,7 +3566,8 @@ async function saveSettings(){
     'certTitle':'s-ctitle','sigLabel':'s-siglbl','certNotes':'s-notes',
     'regText':'s-reg','cop':'s-cop','scheme':'s-scheme','accred':'s-accred',
     'colHeader':'s-ch','colHText':'s-cht','colRow':'s-cr',
-    'baseFont':'s-fbase','hdrFont':'s-fhdr','titleFont':'s-ftitle','thFont':'s-fth','tdFont':'s-ftd'
+    'baseFont':'s-fbase','hdrFont':'s-fhdr','titleFont':'s-ftitle','thFont':'s-fth','tdFont':'s-ftd',
+    'geminiKey':'s-gemini-key'
   };
   Object.entries(map).forEach(([key,id])=>{const el=ge(id);if(el)cfg[key]=el.value;});
   try{
@@ -3086,7 +3577,7 @@ async function saveSettings(){
     trackOp('writes','settings',1);
     await logAudit('update','Settings saved','config');
     checkAdmin();applyFeatureFlags();sync('ok');toast('✅ Settings saved','success');doPreview();
-  }catch(e){sync('err','Save failed');toast('Save failed — logos may be too large (max 800KB each)','error');}
+  }catch(e){sync('err','Save failed');toast('Save failed: '+e.message+' (if logos are large, keep each under 800KB)','error');}
 }
 function saveFBConfig(){
   const fb={apiKey:gv('s-fb-key'),authDomain:gv('s-fb-auth'),projectId:gv('s-fb-proj'),storageBucket:gv('s-fb-stor'),messagingSenderId:gv('s-fb-msg'),appId:gv('s-fb-app')};
@@ -3126,10 +3617,14 @@ async function doImport(input){
     if(!data.reports||!Array.isArray(data.reports)){toast('Invalid backup file','error');return;}
     if(!confirm('Import '+data.reports.length+' reports? Matching IDs will be overwritten.'))return;
     sync('busy','Importing...');
-    const batch=db.batch();
-    data.reports.forEach(r=>batch.set(db.collection('reports').doc(r.id),r));
-    if(data.cfg)batch.set(db.collection('settings').doc('appConfig'),data.cfg);
-    await batch.commit();
+    /* Firestore batches max out at 500 ops — chunk large imports */
+    for(let i=0;i<data.reports.length;i+=450){
+      const batch=db.batch();
+      data.reports.slice(i,i+450).forEach(r=>batch.set(db.collection('reports').doc(String(r.id)),r));
+      await batch.commit();
+    }
+    if(data.cfg)await db.collection('settings').doc('appConfig').set(data.cfg);
+    trackOp('writes','reports',data.reports.length);
     await logAudit('create','Imported '+data.reports.length+' reports','');
     toast('Imported '+data.reports.length+' reports','success');sync('ok');
   }catch(e){toast('Import failed: '+e.message,'error');sync('err');}
@@ -3139,9 +3634,12 @@ async function deleteAllDrafts(){
   const drafts=reports.filter(r=>r.status==='draft');
   if(!drafts.length){toast('No drafts found','info');return;}
   sync('busy');
-  const batch=db.batch();
-  drafts.forEach(r=>batch.delete(db.collection('reports').doc(r.id)));
-  await batch.commit();
+  for(let i=0;i<drafts.length;i+=450){
+    const batch=db.batch();
+    drafts.slice(i,i+450).forEach(r=>batch.delete(db.collection('reports').doc(String(r.id))));
+    await batch.commit();
+  }
+  trackOp('deletes','reports',drafts.length);
   await logAudit('delete','Deleted '+drafts.length+' drafts','');
   toast('Deleted '+drafts.length+' drafts','success');sync('ok');
 }
@@ -3151,9 +3649,12 @@ async function purgeExpired(){
   if(!expired.length){toast('No expired reports','info');return;}
   if(!confirm('Permanently delete '+expired.length+' expired reports? Export a backup first!'))return;
   sync('busy');
-  const batch=db.batch();
-  expired.forEach(r=>batch.delete(db.collection('reports').doc(r.id)));
-  await batch.commit();
+  for(let i=0;i<expired.length;i+=450){
+    const batch=db.batch();
+    expired.slice(i,i+450).forEach(r=>batch.delete(db.collection('reports').doc(String(r.id))));
+    await batch.commit();
+  }
+  trackOp('deletes','reports',expired.length);
   await logAudit('delete','Purged '+expired.length+' expired reports','');
   toast('Purged '+expired.length+' reports','success');sync('ok');
 }
