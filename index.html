@@ -1712,7 +1712,7 @@ function getFBCfg(){
 firebase.initializeApp(getFBCfg());
 const db=firebase.firestore();
 const auth=firebase.auth();
-db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+try{db.settings({cache:firebase.firestore.persistentLocalCache({tabManager:firebase.firestore.persistentMultipleTabManager()})});}catch(e){}
 
 /* ─── DEFAULTS ─── */
 const DEFS={
@@ -2452,13 +2452,35 @@ function genRef(){
   while(ex.has(next.toLowerCase()))next=incStr(next);return next;
 }
 function incStr(s){const m=s.match(/^(.*?)(\d+)$/);return m?m[1]+String(parseInt(m[2],10)+1).padStart(m[2].length,'0'):s+'-1';}
+function addressRefPart(addr){
+  if(!addr)return'';
+  /* Prefer real line breaks; a single-line comma address (e.g. "294 Bilton Road, Perivale...")
+     gets split on commas instead so we still get separate logical segments to work with. */
+  let lines=addr.split('\n').map(l=>l.trim()).filter(Boolean);
+  if(lines.length<2)lines=addr.split(',').map(l=>l.trim()).filter(Boolean);
+  if(!lines.length)return'';
+  const startsWithDigit=l=>/^\d/.test(l);
+  let businessName='',streetLine;
+  if(startsWithDigit(lines[0])){
+    /* First line IS the door number + street already (e.g. "294 Bilton Road") */
+    streetLine=lines[0];
+  }else{
+    /* First line is a property/business name (e.g. "Gossip Nails") \u2014 keep it, then
+       find the next line that actually starts with a door number. */
+    businessName=lines[0];
+    streetLine=lines.slice(1).find(startsWithDigit)||lines[1]||'';
+  }
+  const m=(streetLine||'').match(/^(\d+\w*)\s+(\S+)\s*(\S+)?/);
+  const streetPart=m?[m[1],m[2],m[3]].filter(Boolean).join(' '):(streetLine||'').split(/\s+/).slice(0,3).join(' ');
+  return businessName?businessName+' '+streetPart:streetPart;
+}
 function updateRef(){
   if(!getFt('smartref'))return;
   const el=ge('pat-ref');
   if(el&&el.dataset.manual==='true') return;
   const base=(gv('pat-ref')||'').split(' / ')[0].trim();
   const addr=gv('pat-addr').trim();
-  const short=addr.split(/\s+/).slice(0,3).join(' ');
+  const short=addressRefPart(addr);
   sv('pat-ref',short?base+' / '+short:base);
 }
 function calcNext(dt,period){
