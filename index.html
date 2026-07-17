@@ -777,7 +777,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
             <div class="g2" style="gap:10px;">
               <div class="fg"><label>Landlord Name</label><input type="text" id="pat-landlord" onchange="doPreview();updateSidePanel()"></div>
               <div class="fg"><label>Agency / Client Name</label><input type="text" id="pat-agency" onchange="doPreview();updateSidePanel()"></div>
-              <div class="fg"><label>Property Address</label><div class="acw"><textarea id="pat-addr" style="height:80px;" oninput="updateRef();doPreview();updateSidePanel()" required></textarea></div></div>
+              <div class="fg"><label>Property Address</label><div class="acw"><textarea id="pat-addr" style="height:80px;" oninput="capitalizeAddress(this)" required></textarea></div></div>
               <div>
                 <div class="fg" style="margin-bottom:10px;"><label>Phone</label><input type="tel" id="pat-phone" onchange="doPreview();updateSidePanel()"></div>
                 <div class="fg"><label>Email</label><input type="email" id="pat-email" onchange="doPreview();updateSidePanel()"></div>
@@ -1406,7 +1406,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
             <div class="slbl" style="margin-top:0;">Access Control</div>
             <div class="alert ai" style="margin-bottom:14px;"><span>ℹ️</span>
               <div><div class="at_">How It Works</div>
-              <div class="ab_">The admin email (set in Company tab) sees Settings + Audit Log. All other registered accounts are Engineers.</div></div>
+              <div class="ab_">The admin email (set in Company tab) sees Settings + Audit Log. All other registered accounts are Engineers. "Remove Access" blocks their login — it can't delete the underlying Firebase account itself (that needs Firebase's own backend tools), but they will not be able to sign in again once blocked.</div></div>
             </div>
             <div class="alert as_">
               <span>✅</span>
@@ -1419,8 +1419,8 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
               <div class="card-title">👥 Registered Users</div>
               <button class="btn btn-ghost btn-sm" onclick="loadRegisteredUsers()"><i class="fa-solid fa-rotate"></i> Refresh</button>
             </div>
-            <div class="tw"><table><thead><tr><th>Email</th><th>Role</th><th>Last Seen</th><th>Reports</th></tr></thead>
-            <tbody id="users-tbody"><tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:16px;">Click Refresh to load users</td></tr></tbody></table></div>
+            <div class="tw"><table><thead><tr><th>Email</th><th>Role</th><th>Last Seen</th><th>Reports</th><th></th></tr></thead>
+            <tbody id="users-tbody"><tr><td colspan="5" style="text-align:center;color:var(--txt3);padding:16px;">Click Refresh to load users</td></tr></tbody></table></div>
           </div>
         </div>
 
@@ -1525,6 +1525,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
         <!-- FIREBASE CONFIG -->
         <div class="spanel" id="sp-firebase">
           <div class="card">
+            <button class="btn btn-primary" style="margin-bottom:16px;" onclick="openFirebaseConsole()"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Firebase Console</button>
             <div class="alert aw" style="margin-bottom:16px;"><span>⚠️</span>
               <div><div class="at_">Advanced — Only change if migrating Firebase projects</div>
               <div class="ab_">Incorrect values will break the app. Save then reload.</div></div>
@@ -1720,11 +1721,11 @@ const DEFS={
   companyAddress:'127 Woodlands Road, Ilford, Essex, IG1 1JP',
   contactPhone:'02033022024',email:'info@ohmelectricals.co.uk',website:'',vat:'',regNo:'',insurance:'',
   adminEmail:'',companyLogo:'',patLogo:'',patLogo2:'',engineerSignature:'',
-  geminiKey:'',
+  geminiKey:'',blockedEmails:[],
   colHeader:'#1e3a5f',colHText:'#ffffff',colRow:'#f8fafc',
   smtpHost:'smtp.office365.com',smtpPort:'587',smtpUser:'',smtpPass:'',smtpName:'',smtpCC:'',
   emailSubject:'Your PAT Certificate — Ref: {ref}',defEmail:'',
-  emailBody:'Dear {client},\n\nPlease find attached your PAT testing certificate (Ref: {ref}) for {address}.\n\nNext recommended retest: {due}.\n\nKind regards,\n{company}\n{phone}',
+  emailBody:'Dear {client},\n\nPlease find attached your PAT (Portable Appliance Testing) certificate — Reference: {ref} — for the property at {address}.\n\nThis test has been carried out in accordance with the Electricity at Work Regulations 1989 and the IET Code of Practice for In-Service Inspection and Testing of Electrical Equipment (5th Edition).\n\nNext recommended retest date: {due}.\n\n----------------------------------------\nCERTIFICATE OWNERSHIP\n----------------------------------------\nThis certificate remains the property of {company} until payment for the associated works has been received in full. {company} reserves the right to recall or invalidate this certificate at any time if payment has not been completed.\n\n----------------------------------------\nCERTIFICATE INTEGRITY\n----------------------------------------\nThis certificate and its template are protected. Forging, altering or reproducing this certificate, or using this template without written permission, is unlawful and may result in legal action.\n\nIf you have any questions, please don\'t hesitate to get in touch.\n\nKind regards,\n{company}\n{phone}\n{email}',
   remindBody:'Dear {client},\n\nFriendly reminder: your PAT certificate for {address} is due for renewal on {due}.\n\nKind regards,\n{company}',
   remindDays1:'30',remindDays2:'7',autoSend:'no',
   defaultRetestPeriod:'12 Months',defaultEngineer:'',defaultInstrument:'',
@@ -1741,6 +1742,7 @@ const DEFS={
 
 /* ─── STATE ─── */
 let cfg=null,reports=[],auditLog=[],apps=[],curUser=null,isAdmin=false;
+let currentBaseRef='';/* base serial (e.g. "OHM161") kept separate from the composed ref shown to the user */
 let unsubRep=null,unsubAud=null;
 let histPage=1,audPage=1,myRepPage=1,clientsPage=1;
 const PER=20;
@@ -1956,7 +1958,17 @@ auth.onAuthStateChanged(async user=>{
   ge('auth-screen').classList.add('gone');
   const av=ge('sb-av');if(av)av.textContent=(user.email||'U')[0].toUpperCase();
   const em=ge('sb-email');if(em)em.textContent=user.email||'';
-  try{await init();}catch(e){console.error(e);sync('err','Init failed');toast('Init failed: '+e.message,'error');}
+  try{
+    await init();
+    /* Enforce access revocation \u2014 the Firebase client SDK can't delete another user's
+       account (that needs the Admin SDK on a real backend, which this app doesn't have),
+       so blocking works by refusing sign-in once their email is on the blocklist instead. */
+    if((cfg?.blockedEmails||[]).map(e=>e.toLowerCase()).includes((user.email||'').toLowerCase())){
+      await auth.signOut();
+      authErr('Your access has been removed. Contact your admin.');
+      return;
+    }
+  }catch(e){console.error(e);sync('err','Init failed');toast('Init failed: '+e.message,'error');}
 });
 
 /* ─── ADMIN CHECK ─── */
@@ -2417,7 +2429,7 @@ function saveDraft(){
   try{localStorage.setItem('ohm_draft',JSON.stringify(readForm()));}catch(e){}
 }
 function readForm(){
-  return{id:gv('report-id'),refNumber:gv('pat-ref'),status:gv('pat-status'),
+  return{id:gv('report-id'),refNumber:gv('pat-ref'),baseRef:currentBaseRef,status:gv('pat-status'),
     testDate:gv('pat-date'),engineer:gv('pat-eng'),
     landlordName:gv('pat-landlord'),agencyName:gv('pat-agency'),
     propertyAddress:gv('pat-addr'),phoneNumber:gv('pat-phone'),emailAddress:gv('pat-email'),
@@ -2433,11 +2445,13 @@ function fillForm(d){
   setTxt('form-title',d.id?'Edit: '+d.refNumber:'New PAT Test');
   const refEl=ge('pat-ref');
   if(refEl) refEl.dataset.manual = d.id ? 'true' : 'false';
+  currentBaseRef=d.baseRef||(d.refNumber||'').split(' / ')[0].trim();
 }
 function initNewForm(force=false){
   if(!force&&getFt('autosave')){try{const r=localStorage.getItem('ohm_draft');if(r){fillForm(JSON.parse(r));return;}}catch(e){}}
   const today=new Date().toISOString().split('T')[0];
-  sv('report-id','');sv('pat-ref',genRef());sv('pat-status','draft');
+  currentBaseRef=genRef();
+  sv('report-id','');sv('pat-ref',currentBaseRef+'00');sv('pat-status','draft');
   sv('pat-date',today);sv('pat-eng',cfg?.defaultEngineer||'');
   sv('pat-landlord','');sv('pat-agency','');sv('pat-addr','');sv('pat-phone','');sv('pat-email','');
   const refEl=ge('pat-ref');
@@ -2474,14 +2488,38 @@ function addressRefPart(addr){
   const streetPart=m?[m[1],m[2],m[3]].filter(Boolean).join(' '):(streetLine||'').split(/\s+/).slice(0,3).join(' ');
   return businessName?businessName+' '+streetPart:streetPart;
 }
+function liveCapitalize(el){
+  /* Same live title-case behaviour as the address field, kept lightweight here (no
+     doPreview/upd on every keystroke) — the appliance description still commits via
+     its existing onchange, this just makes what they see while typing already correct. */
+  const pos=el.selectionStart,posEnd=el.selectionEnd;
+  el.value=el.value.replace(/\b[a-z]/g,c=>c.toUpperCase());
+  el.setSelectionRange(pos,posEnd);
+}
+function capitalizeAddress(el){
+  /* Title-cases each word live as you type — "gossip nails" becomes "Gossip Nails"
+     immediately, not just after leaving the field. Case-only changes never alter the
+     string length, so the cursor position (a character index) stays exactly valid
+     after rewriting el.value, which is why we can safely restore it below. */
+  const pos=el.selectionStart,posEnd=el.selectionEnd;
+  el.value=el.value.split('\n').map(line=>line.replace(/\b[a-z]/g,c=>c.toUpperCase())).join('\n');
+  el.setSelectionRange(pos,posEnd);
+  updateRef();doPreview();updateSidePanel();
+}
 function updateRef(){
   if(!getFt('smartref'))return;
   const el=ge('pat-ref');
   if(el&&el.dataset.manual==='true') return;
-  const base=(gv('pat-ref')||'').split(' / ')[0].trim();
+  /* A single literal "0" separates the base serial from the appliance count (which is
+     NEVER padded, at any digit length) — without a fixed-width separator, a serial
+     ending in digits run straight into the count with no way to tell where one ends and
+     the other begins (e.g. "16213" could be split several ways). With the separator,
+     OHM156 + 0 + 13 appliances reads unambiguously as OHM156013. */
+  const base=currentBaseRef||(gv('pat-ref')||'').split(' / ')[0].trim();
   const addr=gv('pat-addr').trim();
   const short=addressRefPart(addr);
-  sv('pat-ref',short?base+' / '+short:base);
+  const numbered=base+'0'+String(apps.length);
+  sv('pat-ref',short?numbered+' / '+short:numbered);
 }
 function calcNext(dt,period){
   if(!dt||!period)return'';
@@ -2497,7 +2535,7 @@ function addRow(data=null){
   const today=gv('pat-date')||new Date().toISOString().split('T')[0];
   const period=cfg?.defaultRetestPeriod||'12 Months';
   apps.push(data||{id:Date.now().toString(36)+Math.random().toString(36).substr(2,4),assetId:nextId,description:'',testInstrument:cfg?.defaultInstrument||'',date:today,retestPeriod:period,nextTest:calcNext(today,period),result:cfg?.defaultResult||'Pass'});
-  renderApps({focusDesc:apps.length-1});schedSave();
+  renderApps({focusDesc:apps.length-1});updateRef();schedSave();
 }
 function renderApps(opts={}){
   const tbody=ge('app-tbody');if(!tbody)return;
@@ -2515,7 +2553,7 @@ function renderApps(opts={}){
   apps.forEach((a,i)=>{
     const tr=document.createElement('tr');
     tr.innerHTML='<td><input class="ti" id="a'+i+'" value="'+esc(a.assetId)+'" onchange="upd('+i+',\'assetId\',this.value)" placeholder="A001"></td>'+
-      '<td><div class="acw"><textarea id="d'+i+'" class="ti" style="height:30px;min-height:30px;resize:vertical;" onchange="upd('+i+',\'description\',this.value)" onkeydown="dTab(event,'+i+')">'+esc(a.description)+'</textarea></div></td>'+
+      '<td><div class="acw"><textarea id="d'+i+'" class="ti" style="height:30px;min-height:30px;resize:vertical;" oninput="liveCapitalize(this)" onchange="upd('+i+',\'description\',this.value)" onkeydown="dTab(event,'+i+')">'+esc(a.description)+'</textarea></div></td>'+
       '<td><input class="ti" id="i'+i+'" value="'+esc(a.testInstrument)+'" onchange="upd('+i+',\'testInstrument\',this.value)"></td>'+
       '<td><input type="date" class="ti" id="t'+i+'" value="'+esc(a.date)+'" onchange="updDate('+i+',this.value)"></td>'+
       '<td><select class="ts" id="p'+i+'" onchange="updPer('+i+',this.value)">'+['3','6','12','24','48'].map(n=>'<option value="'+n+' Months"'+(a.retestPeriod===n+' Months'?' selected':'')+'>'+n+'m</option>').join('')+'</select></td>'+
@@ -2563,7 +2601,7 @@ function applyHeaderDate(v){
   }
   renderApps();doPreview();updateSidePanel();
 }
-function delRow(i){apps.splice(i,1);renderApps();doPreview();updateSidePanel();schedSave();}
+function delRow(i){apps.splice(i,1);renderApps();doPreview();updateSidePanel();updateRef();schedSave();}
 function updSum(){
   const tot=apps.length,p=apps.filter(a=>a.result==='Pass').length,f=apps.filter(a=>a.result==='Fail').length;
   setTxt('app-sum',tot+' item'+(tot!==1?'s':''));
@@ -2591,7 +2629,7 @@ function doBulkAdd(){
     if(startId){const m=startId.match(/^(.*?)(\d+)$/);if(m)assetId=m[1]+String(parseInt(m[2],10)+idx).padStart(m[2].length,'0');else assetId=startId+(idx?'-'+(idx+1):'');}
     apps.push({id:Date.now().toString(36)+Math.random().toString(36).substr(2,4),assetId,description:desc,testInstrument:cfg?.defaultInstrument||'',date:today,retestPeriod:period,nextTest:calcNext(today,period),result});
   });
-  renderApps();doPreview();updateSidePanel();closeBulkModal();
+  renderApps();doPreview();updateSidePanel();updateRef();closeBulkModal();
   toast('Added '+lines.length+' rows','success');
 }
 
@@ -2641,7 +2679,9 @@ async function runScan(){
   }
   btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-wand-magic-sparkles"></i> Re-Scan';
   if(!items||!items.length){toast('No text detected \u2014 try a clearer, closer photo','warn');return;}
-  _scanResults=items.map(it=>({assetId:(it.assetId||'').toString().trim(),description:(it.description||'').toString().trim(),include:true}));
+  /* Strip a trailing full stop \u2014 handwriting often has a pen dot at the end of a word
+     that gets read as a literal period, which looks wrong on the printed certificate. */
+  _scanResults=items.map(it=>({assetId:(it.assetId||'').toString().trim(),description:(it.description||'').toString().trim().replace(/\.+\s*$/,''),include:true}));
   renderScanResults();
   ge('scan-status').innerHTML=usedFallback
     ?'<i class="fa-solid fa-triangle-exclamation" style="color:var(--amber);"></i> Used the free OCR fallback (no Gemini key set in Settings) \u2014 check these carefully.'
@@ -2745,7 +2785,7 @@ function addScanResults(){
   chosen.forEach(r=>{
     apps.push({id:Date.now().toString(36)+Math.random().toString(36).substr(2,4),assetId:r.assetId.trim(),description:r.description.trim(),testInstrument:cfg?.defaultInstrument||'',date:today,retestPeriod:period,nextTest:calcNext(today,period),result:cfg?.defaultResult||'Pass'});
   });
-  renderApps();doPreview();updateSidePanel();closeScanModal();
+  renderApps();doPreview();updateSidePanel();updateRef();closeScanModal();
   toast('Added '+chosen.length+' row'+(chosen.length!==1?'s':'')+' from scan','success');
   logAudit('create','Added '+chosen.length+' rows via handwriting scan','');
 }
@@ -2759,7 +2799,7 @@ async function saveReport(complete){
   if(complete&&!apps.some(a=>(a.description||'').trim()||(a.assetId||'').trim())){toast('Add at least one appliance before completing','warn');return;}
   sync('busy','Saving...');
   const idVal=gv('report-id'),newId=idVal||Date.now().toString();
-  const report={id:newId,refNumber:refVal,status:complete?'completed':'draft',
+  const report={id:newId,refNumber:refVal,baseRef:currentBaseRef,status:complete?'completed':'draft',
     testDate:gv('pat-date'),engineer:gv('pat-eng'),
     landlordName:gv('pat-landlord'),agencyName:gv('pat-agency'),
     propertyAddress:gv('pat-addr'),phoneNumber:gv('pat-phone'),emailAddress:gv('pat-email'),
@@ -2768,8 +2808,11 @@ async function saveReport(complete){
   try{
     await db.collection('reports').doc(newId).set(report,{merge:true});
     /* Only advance the ref counter FORWARD — re-saving an old report (e.g. OHM10005
-       while the counter is at OHM10050) must not rewind it and cause duplicate refs. */
-    const newBase=refVal.split(' / ')[0].trim();
+       while the counter is at OHM10050) must not rewind it and cause duplicate refs.
+       Uses the TRUE base serial (currentBaseRef), not the display ref — the display
+       ref now has the appliance count baked in right after the serial with no separator
+       (e.g. OHM161059), so parsing trailing digits off it would corrupt the counter. */
+    const newBase=(currentBaseRef||refVal.split(' / ')[0].trim());
     if(refNum(newBase)>refNum(cfg.lastRefNumber)){
       cfg.lastRefNumber=newBase;
       await db.collection('settings').doc('appConfig').update({lastRefNumber:cfg.lastRefNumber}).catch(()=>{});
@@ -3384,6 +3427,32 @@ async function loadNoticeSettings(){
 }
 
 /* ─── REGISTERED USERS ─── */
+async function blockUser(email){
+  if(!confirm('Remove access for '+email+'? They will be signed out and unable to log back in until unblocked.'))return;
+  cfg.blockedEmails=[...new Set([...(cfg.blockedEmails||[]),email])];
+  try{
+    await db.collection('settings').doc('appConfig').update({blockedEmails:cfg.blockedEmails});
+    writeCache(CACHE_KEYS.settings,cfg);
+    toast('Access removed for '+email,'success');
+    logAudit('update','Blocked user access',email);
+    loadRegisteredUsers();
+  }catch(e){toast('Failed: '+e.message,'error');}
+}
+async function unblockUser(email){
+  cfg.blockedEmails=(cfg.blockedEmails||[]).filter(e=>e.toLowerCase()!==email.toLowerCase());
+  try{
+    await db.collection('settings').doc('appConfig').update({blockedEmails:cfg.blockedEmails});
+    writeCache(CACHE_KEYS.settings,cfg);
+    toast('Access restored for '+email,'success');
+    logAudit('update','Unblocked user access',email);
+    loadRegisteredUsers();
+  }catch(e){toast('Failed: '+e.message,'error');}
+}
+function openFirebaseConsole(){
+  const proj=getFBCfg().projectId;
+  if(!proj){toast('No Firebase project ID found','warn');return;}
+  window.open('https://console.firebase.google.com/project/'+encodeURIComponent(proj)+'/overview','_blank');
+}
 async function loadRegisteredUsers(){
   const tbody=ge('users-tbody');
   tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--txt3);">Loading...</td></tr>';
@@ -3394,11 +3463,17 @@ async function loadRegisteredUsers(){
     const adminEmail=(cfg?.adminEmail||'').toLowerCase();
     tbody.innerHTML='';
     if(!Object.keys(userMap).length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--txt3);">No login records yet</td></tr>';return;}
+    const blocked=new Set((cfg?.blockedEmails||[]).map(e=>e.toLowerCase()));
     Object.values(userMap).sort((a,b)=>b.lastSeen.localeCompare(a.lastSeen)).forEach(u=>{
-      const role=u.email.toLowerCase()===adminEmail?'<span class="badge binfo">Admin</span>':'<span class="badge bpu">Engineer</span>';
+      const isAdminUser=u.email.toLowerCase()===adminEmail;
+      const isBlocked=blocked.has(u.email.toLowerCase());
+      const role=isAdminUser?'<span class="badge binfo">Admin</span>':(isBlocked?'<span class="badge bexp">Blocked</span>':'<span class="badge bpu">Engineer</span>');
       const repCount=reports.filter(r=>r.createdBy===u.email).length;
       const ts=new Date(u.lastSeen);
-      tbody.innerHTML+='<tr><td><strong>'+esc(u.email)+'</strong></td><td>'+role+'</td><td style="font-size:.8rem;color:var(--txt2);">'+ts.toLocaleDateString('en-GB')+' '+ts.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+'</td><td>'+repCount+'</td></tr>';
+      const action=isAdminUser?'':(isBlocked
+        ?'<button class="btn btn-ghost btn-xs" onclick="unblockUser(\''+esc(jsq(u.email))+'\')"><i class="fa-solid fa-lock-open"></i> Unblock</button>'
+        :'<button class="btn btn-ghost btn-xs" style="color:var(--red2);" onclick="blockUser(\''+esc(jsq(u.email))+'\')"><i class="fa-solid fa-user-slash"></i> Remove Access</button>');
+      tbody.innerHTML+='<tr><td><strong>'+esc(u.email)+'</strong></td><td>'+role+'</td><td style="font-size:.8rem;color:var(--txt2);">'+ts.toLocaleDateString('en-GB')+' '+ts.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+'</td><td>'+repCount+'</td><td>'+action+'</td></tr>';
     });
   }catch(e){tbody.innerHTML='<tr><td colspan="4" style="color:var(--red2);padding:12px;">Error: '+esc(e.message)+'</td></tr>';}
 }
