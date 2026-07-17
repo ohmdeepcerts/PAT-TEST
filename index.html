@@ -2681,7 +2681,10 @@ async function runScan(){
   if(!items||!items.length){toast('No text detected \u2014 try a clearer, closer photo','warn');return;}
   /* Strip a trailing full stop \u2014 handwriting often has a pen dot at the end of a word
      that gets read as a literal period, which looks wrong on the printed certificate. */
-  _scanResults=items.map(it=>({assetId:(it.assetId||'').toString().trim(),description:(it.description||'').toString().trim().replace(/\.+\s*$/,''),include:true}));
+  /* Universal safety net regardless of which engine ran — strip stray ruled-line/border
+     characters (| _ ~ `) that OCR sometimes misreads off the photographed sheet, and a
+     trailing full stop from a handwriting pen-dot, before showing results for review. */
+  _scanResults=items.map(it=>({assetId:(it.assetId||'').toString().trim(),description:(it.description||'').toString().replace(/[|_~`]+/g,' ').replace(/\s+/g,' ').trim().replace(/\.+\s*$/,''),include:true}));
   renderScanResults();
   ge('scan-status').innerHTML=usedFallback
     ?'<i class="fa-solid fa-triangle-exclamation" style="color:var(--amber);"></i> Used the free OCR fallback (no Gemini key set in Settings) \u2014 check these carefully.'
@@ -2759,9 +2762,15 @@ async function scanWithOCRSpace(b64){
     tokens.forEach(t=>{
       const stripped=t.replace(/^[\(\[]+|[\)\].,:;\-]+$/g,'');
       if(!stripped)return;
+      /* Plain OCR frequently reads ruled lines / table borders on the photographed sheet
+         as stray "|" (or "-", "_", "~") characters — these aren't real words, so any token
+         with no actual letters or digits in it gets discarded entirely rather than tacked
+         onto the description. */
+      if(!/[a-zA-Z0-9]/.test(stripped))return;
       if(/\d/.test(stripped))idParts.push(stripped);else descParts.push(stripped);
     });
-    return{assetId:idParts.join(' '),description:spellCorrectAppliance(descParts.join(' '))};
+    const cleanDesc=descParts.join(' ').replace(/[|_~`]+/g,' ').replace(/\s+/g,' ').trim();
+    return{assetId:idParts.join(' '),description:spellCorrectAppliance(cleanDesc)};
   });
 }
 function renderScanResults(){
