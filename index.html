@@ -777,7 +777,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
             <div class="g2" style="gap:10px;">
               <div class="fg"><label>Landlord Name</label><input type="text" id="pat-landlord" onchange="doPreview();updateSidePanel()"></div>
               <div class="fg"><label>Agency / Client Name</label><input type="text" id="pat-agency" onchange="doPreview();updateSidePanel()"></div>
-              <div class="fg"><label>Property Address</label><div class="acw"><textarea id="pat-addr" style="height:80px;" oninput="capitalizeAddress(this)" required></textarea></div></div>
+              <div class="fg"><label style="display:flex;justify-content:space-between;align-items:center;">Property Address<button type="button" id="autocap-toggle" class="btn btn-ghost btn-xs on" style="text-transform:none;font-weight:600;letter-spacing:0;" onclick="toggleAutoCap()"><i class="fa-solid fa-toggle-on"></i> Auto-Capitalize: On</button></label><div class="acw"><textarea id="pat-addr" style="height:80px;" oninput="capitalizeAddress(this)" required></textarea></div></div>
               <div>
                 <div class="fg" style="margin-bottom:10px;"><label>Phone</label><input type="tel" id="pat-phone" onchange="doPreview();updateSidePanel()"></div>
                 <div class="fg"><label>Email</label><input type="email" id="pat-email" onchange="doPreview();updateSidePanel()"></div>
@@ -1168,7 +1168,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
               <div class="fg"><label>Default Retest Period</label><select id="s-retest"><option value="3 Months">3 Months</option><option value="6 Months">6 Months</option><option value="12 Months" selected>12 Months</option><option value="24 Months">24 Months</option><option value="48 Months">48 Months</option></select></div>
               <div class="fg"><label>Default Engineer</label><input type="text" id="s-eng"></div>
               <div class="fg"><label>Default Instrument</label><input type="text" id="s-inst"></div>
-              <div class="fg"><label>Starting Ref Number</label><input type="text" id="s-ref"></div>
+              <div class="fg"><label>Starting Ref Number</label><input type="text" id="s-ref" oninput="previewNextRef()"><div class="hint" id="s-ref-preview" style="margin-top:4px;"></div></div>
               <div class="fg"><label>Default Result</label><select id="s-defres"><option value="Pass">Pass</option><option value="Fail">Fail</option></select></div>
               <div class="fg"><label>Auto-save Interval (sec)</label><input type="number" id="s-autosave" value="15" min="5"></div>
             </div>
@@ -1585,7 +1585,10 @@ service cloud.firestore {
   <div class="tab" id="page-audit">
     <div class="ph">
       <div class="ph-left"><div class="ph-title">Audit Log</div><div class="ph-sub">Every action recorded</div></div>
-      <div class="ph-acts"><button class="btn btn-ghost btn-sm" onclick="exportAuditCSV()"><i class="fa-solid fa-file-csv"></i> Export CSV</button></div>
+      <div class="ph-acts">
+        <button class="btn btn-ghost btn-sm" onclick="openVerifyRefModal()"><i class="fa-solid fa-shield-halved"></i> Verify Reference</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportAuditCSV()"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+      </div>
     </div>
     <div class="pb">
       <div class="card" style="padding:12px 16px;margin-bottom:12px;">
@@ -1606,6 +1609,18 @@ service cloud.firestore {
   </div>
 
 </div><!-- end #main -->
+
+<!-- VERIFY REFERENCE MODAL -->
+<div id="verify-ref-modal" class="modal">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-hd"><div class="modal-title"><i class="fa-solid fa-shield-halved"></i> Verify Reference Number</div><button class="btn-icon" onclick="closeVerifyRefModal()">✕</button></div>
+    <p style="font-size:.86rem;color:var(--txt2);margin-bottom:16px;line-height:1.5;">A genuine reference number encodes the exact appliance count — a copy for a different property will usually get this wrong even if the address looks right. This check is entirely offline; it doesn't look anything up.</p>
+    <div class="fg" style="margin-bottom:14px;"><label>Reference Number (from the certificate)</label><input type="text" id="vr-ref" placeholder="e.g. OHM156013"></div>
+    <div class="fg" style="margin-bottom:18px;"><label>Appliance count shown on that certificate</label><input type="number" id="vr-count" placeholder="e.g. 13"></div>
+    <button class="btn btn-primary btn-block" onclick="checkRefIntegrity()"><i class="fa-solid fa-magnifying-glass"></i> Check</button>
+    <div id="vr-result" style="margin-top:14px;"></div>
+  </div>
+</div>
 
 <!-- BATCH ZIP MODAL -->
 <div id="batch-modal" class="modal">
@@ -1713,7 +1728,13 @@ function getFBCfg(){
 firebase.initializeApp(getFBCfg());
 const db=firebase.firestore();
 const auth=firebase.auth();
-try{db.settings({cache:firebase.firestore.persistentLocalCache({tabManager:firebase.firestore.persistentMultipleTabManager()})});}catch(e){}
+/* Multi-tab persistence relies on storage/messaging coordination between tabs that
+   file:// origins (opened by double-clicking the file, as opposed to a real hosted URL)
+   don't support properly — that's the source of the repeated "Tracking Prevention
+   blocked access to storage" warnings. Single-tab persistent cache still gives full
+   offline support for normal use; it just won't sync open state across multiple tabs
+   of the same browser, which this app doesn't rely on. */
+try{db.settings({cache:firebase.firestore.persistentLocalCache({})});}catch(e){}
 
 /* ─── DEFAULTS ─── */
 const DEFS={
@@ -2448,6 +2469,11 @@ function fillForm(d){
   currentBaseRef=d.baseRef||(d.refNumber||'').split(' / ')[0].trim();
 }
 function initNewForm(force=false){
+  const acBtn=ge('autocap-toggle');
+  if(acBtn){
+    acBtn.innerHTML=autoCapEnabled?'<i class="fa-solid fa-toggle-on"></i> Auto-Capitalize: On':'<i class="fa-solid fa-toggle-off"></i> Auto-Capitalize: Off';
+    acBtn.classList.toggle('on',autoCapEnabled);
+  }
   if(!force&&getFt('autosave')){try{const r=localStorage.getItem('ohm_draft');if(r){fillForm(JSON.parse(r));return;}}catch(e){}}
   const today=new Date().toISOString().split('T')[0];
   currentBaseRef=genRef();
@@ -2460,12 +2486,34 @@ function initNewForm(force=false){
   apps=[];addRow();doPreview();updateSidePanel();
 }
 function clearForm(){if(!confirm('Clear form? Unsaved data will be lost.'))return;localStorage.removeItem('ohm_draft');initNewForm(true);toast('Form cleared','info');}
+function previewNextRef(){
+  const el=ge('s-ref-preview');if(!el)return;
+  const base=(gv('s-ref')||'OHM10000').trim();
+  const next=incStr(base);
+  el.textContent='Next report will start from: '+next+'  (current setting: '+base+')';
+}
 function genRef(){
   let base=(cfg?.lastRefNumber||'OHM10000').split(' / ')[0].trim(),next=incStr(base);
-  const ex=new Set(reports.map(r=>(r.refNumber||'').split(' / ')[0].trim().toLowerCase()));
-  while(ex.has(next.toLowerCase()))next=incStr(next);return next;
+  /* Compare against the TRUE base of each existing report (baseRef), not the full display
+     refNumber \u2014 that now has the appliance count baked in (e.g. OHM156013), so comparing
+     against it directly would never actually match anything and silently defeat this
+     collision check. Falls back to stripping the display ref for older reports saved
+     before baseRef existed. */
+  const ex=new Set(reports.map(r=>(r.baseRef||(r.refNumber||'').split(' / ')[0].trim()).toLowerCase()));
+  while(ex.has(next.toLowerCase()))next=incStr(next);
+  return next;
 }
 function incStr(s){const m=s.match(/^(.*?)(\d+)$/);return m?m[1]+String(parseInt(m[2],10)+1).padStart(m[2].length,'0'):s+'-1';}
+function shortHash(str){
+  let h=5381;
+  for(let i=0;i<str.length;i++){h=((h<<5)+h+str.charCodeAt(i))>>>0;}
+  return h.toString(36).toUpperCase().slice(0,6).padStart(6,'0');
+}
+function certVerifyCode(r){
+  const key=[r.refNumber,(r.propertyAddress||'').trim(),r.testDate,(r.appliances||[]).length,
+    (r.appliances||[]).filter(a=>a.result==='Fail').length].join('|');
+  return shortHash(key);
+}
 function addressRefPart(addr){
   if(!addr)return'';
   /* Prefer real line breaks; a single-line comma address (e.g. "294 Bilton Road, Perivale...")
@@ -2488,12 +2536,26 @@ function addressRefPart(addr){
   const streetPart=m?[m[1],m[2],m[3]].filter(Boolean).join(' '):(streetLine||'').split(/\s+/).slice(0,3).join(' ');
   return businessName?businessName+' '+streetPart:streetPart;
 }
+let autoCapEnabled=(localStorage.getItem('ohm_autocap')!=='off');
+function toggleAutoCap(){
+  autoCapEnabled=!autoCapEnabled;
+  localStorage.setItem('ohm_autocap',autoCapEnabled?'on':'off');
+  const btn=ge('autocap-toggle');
+  if(btn){
+    btn.innerHTML=autoCapEnabled?'<i class="fa-solid fa-toggle-on"></i> Auto-Capitalize: On':'<i class="fa-solid fa-toggle-off"></i> Auto-Capitalize: Off';
+    btn.classList.toggle('on',autoCapEnabled);
+  }
+  toast('Auto-capitalize turned '+(autoCapEnabled?'on':'off'),'info',1800);
+}
 function liveCapitalize(el){
   /* Same live title-case behaviour as the address field, kept lightweight here (no
      doPreview/upd on every keystroke) — the appliance description still commits via
      its existing onchange, this just makes what they see while typing already correct. */
+  if(!autoCapEnabled)return;
   const pos=el.selectionStart,posEnd=el.selectionEnd;
-  el.value=el.value.replace(/\b[a-z]/g,c=>c.toUpperCase());
+  /* Lookbehind excludes letters AND apostrophes from counting as a "word start" — without
+     it, "Mary's" was being read as two words and turned into "Mary'S". */
+  el.value=el.value.replace(/(?<![a-zA-Z'])[a-z]/g,c=>c.toUpperCase());
   el.setSelectionRange(pos,posEnd);
 }
 function capitalizeAddress(el){
@@ -2501,8 +2563,9 @@ function capitalizeAddress(el){
      immediately, not just after leaving the field. Case-only changes never alter the
      string length, so the cursor position (a character index) stays exactly valid
      after rewriting el.value, which is why we can safely restore it below. */
+  if(!autoCapEnabled){updateRef();doPreview();updateSidePanel();return;}
   const pos=el.selectionStart,posEnd=el.selectionEnd;
-  el.value=el.value.split('\n').map(line=>line.replace(/\b[a-z]/g,c=>c.toUpperCase())).join('\n');
+  el.value=el.value.split('\n').map(line=>line.replace(/(?<![a-zA-Z'])[a-z]/g,c=>c.toUpperCase())).join('\n');
   el.setSelectionRange(pos,posEnd);
   updateRef();doPreview();updateSidePanel();
 }
@@ -3108,6 +3171,30 @@ function renderAudit(){
   const pager=ge('audit-pager');pager.innerHTML='';
   if(total>1){if(audPage>1)pager.innerHTML+='<div class="pg" onclick="audPage--;renderAudit()">‹</div>';for(let i=Math.max(1,audPage-3);i<=Math.min(total,audPage+3);i++)pager.innerHTML+='<div class="pg'+(i===audPage?' on':'')+'" onclick="audPage='+i+';renderAudit()">'+i+'</div>';if(audPage<total)pager.innerHTML+='<div class="pg" onclick="audPage++;renderAudit()">›</div>';}
 }
+/* ─── REFERENCE NUMBER VERIFICATION (offline, no lookup needed) ─── */
+function openVerifyRefModal(){
+  sv('vr-ref','');sv('vr-count','');
+  ge('vr-result').innerHTML='';
+  ge('verify-ref-modal').classList.add('show');
+}
+function closeVerifyRefModal(){ge('verify-ref-modal').classList.remove('show');}
+function checkRefIntegrity(){
+  const raw=(gv('vr-ref')||'').trim();
+  const countStr=(gv('vr-count')||'').trim();
+  const resEl=ge('vr-result');
+  if(!raw||!countStr){resEl.innerHTML='<div class="alert aw"><span>⚠️</span><div class="ab_">Enter both the reference number and the appliance count.</div></div>';return;}
+  const count=parseInt(countStr,10);
+  if(isNaN(count)||count<0){resEl.innerHTML='<div class="alert aw"><span>⚠️</span><div class="ab_">Appliance count must be a number.</div></div>';return;}
+  /* The numeric portion (before any " / address") should end with a literal "0" followed
+     by the exact appliance count, unpadded \u2014 e.g. ...156013 ends with "0"+"13" for 13
+     appliances. A genuine ref for that exact appliance count will always match this. */
+  const numberPart=raw.split('/')[0].trim();
+  const expectedSuffix='0'+String(count);
+  const ok=numberPart.length>expectedSuffix.length && numberPart.endsWith(expectedSuffix);
+  resEl.innerHTML=ok
+    ?'<div class="alert ai" style="border-color:rgba(22,163,74,.3);background:var(--green-dim);"><span><i class="fa-solid fa-circle-check" style="color:var(--green);"></i></span><div><div class="at_">Consistent</div><div class="ab_">The reference number\'s embedded count matches '+count+' appliances. This on its own doesn\'t prove authenticity \u2014 also compare the address, date and engineer against your own records.</div></div></div>'
+    :'<div class="alert aw"><span><i class="fa-solid fa-triangle-exclamation"></i></span><div><div class="at_">Mismatch \u2014 treat with suspicion</div><div class="ab_">This reference number does not encode '+count+' appliances. Either it wasn\'t issued by you, or it has been altered since issue. Cross-check the ref against your own report history before accepting it.</div></div></div>';
+}
 function exportAuditCSV(){
   let csv='Timestamp,User,Action,Ref,Detail\n';
   auditLog.forEach(e=>{csv+='"'+e.ts+'","'+e.user+'","'+e.action+'","'+(e.ref||'')+'","'+(e.detail||'')+'"\n';});
@@ -3347,6 +3434,15 @@ async function downloadPDF(){
        tuning its config again. jsPDF/html2canvas are exposed globally by the html2pdf
        bundle script already loaded on this page. */
     const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+    /* Hidden Document Properties metadata — invisible on the printed/viewed page, but
+       readable via any PDF reader's Properties panel. A recreated or heavily-edited fake
+       won't carry this, or won't match it, even if the visible page looks identical. */
+    pdf.setProperties({
+      title:'PAT Certificate '+ref,
+      subject:'Ref: '+ref,
+      author:cfg?.companyName||'',
+      keywords:'verify:'+certVerifyCode({refNumber:ref,propertyAddress:gv('pat-addr'),testDate:gv('pat-date'),appliances:apps})
+    });
     for(let i=0;i<pageEls.length;i++){
       if(overlayMsg)overlayMsg.textContent='Rendering page '+(i+1)+' of '+pageEls.length+'...';
       const canvas=await html2canvas(pageEls[i],{scale:4,useCORS:true,backgroundColor:'#ffffff',logging:false,allowTaint:false});
@@ -3604,6 +3700,12 @@ async function buildOffscreenPDF(r){
        page-break detection (the repeated source of extra blank pages). */
     const pageDivs=[...wrap.children];
     const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+    pdf.setProperties({
+      title:'PAT Certificate '+(r.refNumber||''),
+      subject:'Ref: '+(r.refNumber||''),
+      author:cfg?.companyName||'',
+      keywords:'verify:'+certVerifyCode(r)
+    });
     for(let i=0;i<pageDivs.length;i++){
       const canvas=await html2canvas(pageDivs[i],{scale:4,useCORS:true,backgroundColor:'#fff',logging:false});
       const imgData=canvas.toDataURL('image/png');
@@ -3625,6 +3727,7 @@ function stab(t){
   if(t==='notice')loadNoticeSettings();
   if(t==='usage'){refreshUsageDisplay();updateThemeBtns();}
   if(t==='features')updateThemeBtns();
+  if(t==='defaults')previewNextRef();
 }
 function loadSettingsUI(){
   if(!cfg)return;
