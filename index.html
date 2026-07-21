@@ -765,7 +765,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
               <div class="fg"><label>Status</label><select id="pat-status" onchange="doPreview();updateSidePanel()"><option value="draft">📝 Draft</option><option value="completed">✅ Completed</option></select></div>
               <div class="fg"><label>Test Date</label>
                 <div style="display:flex;gap:6px;">
-                  <input type="date" id="pat-date" onchange="doPreview();updateSidePanel()" style="flex:1;">
+                  <input type="date" id="pat-date" onchange="applyHeaderDate(this.value)" style="flex:1;">
                   <button type="button" class="btn btn-ghost btn-xs" onclick="applyHeaderDate(gv('pat-date'))" title="Apply this date to all rows"><i class="fa-solid fa-arrow-down"></i> Apply All</button>
                 </div>
               </div>
@@ -2650,19 +2650,15 @@ function updDate(i,v){
 }
 function updPer(i,v){if(!apps[i])return;apps[i].retestPeriod=v;apps[i].nextTest=calcNext(apps[i].date,v);renderApps();doPreview();updateSidePanel();}
 function applyHeaderDate(v){
+  /* The top Test Date is the single source of truth — every appliance is always tested
+     on the same visit, so changing it here always overwrites every row's date (and
+     recalculates each row's Next Due from it), with no exceptions and no separate
+     confirmation step. */
   if(!v||!apps.length)return;
   const existingDates=[...new Set(apps.map(a=>a.date))];
-  if(existingDates.length===1&&existingDates[0]===v) return;
-  let changed=0;
-  if(existingDates.length===1&&!existingDates[0]){
-    apps.forEach(a=>{a.date=v;a.nextTest=calcNext(v,a.retestPeriod);changed++;});
-    toast('Date applied to all '+changed+' rows','info');
-  }else{
-    apps.forEach(a=>{if(!a.date){a.date=v;a.nextTest=calcNext(v,a.retestPeriod);changed++;}});
-    if(changed) toast('Date applied to '+changed+' empty rows','info');
-    else toast('Date not applied — rows already have dates. Use row date pickers to change individually.','info');
-  }
-  renderApps();doPreview();updateSidePanel();
+  if(existingDates.length===1&&existingDates[0]===v){doPreview();updateSidePanel();return;}
+  apps.forEach(a=>{a.date=v;a.nextTest=calcNext(v,a.retestPeriod);});
+  renderApps();doPreview();updateSidePanel();schedSave();
 }
 function delRow(i){apps.splice(i,1);renderApps();doPreview();updateSidePanel();updateRef();schedSave();}
 function updSum(){
@@ -3002,6 +2998,8 @@ function renderHistory(){
       '<td>'+certBadge+'</td>'+
       '<td>'+st2+'</td>'+
       '<td style="white-space:nowrap;"><button class="btn btn-ghost btn-xs" onclick="editReport(\''+r.id+'\')" style="margin-right:3px;"><i class="fa-solid fa-pen"></i></button>'+
+      '<button class="btn btn-ghost btn-xs" onclick="downloadReportPDF(\''+r.id+'\')" style="margin-right:3px;" title="Download PDF"><i class="fa-solid fa-file-pdf"></i></button>'+
+      '<button class="btn btn-ghost btn-xs" onclick="printReportDirect(\''+r.id+'\')" style="margin-right:3px;" title="Print"><i class="fa-solid fa-print"></i></button>'+
       '<button class="btn btn-ghost btn-xs" onclick="copyText(\''+esc(jsq(r.refNumber))+'\')" style="margin-right:3px;" title="Copy Ref"><i class="fa-solid fa-copy"></i></button>'+
       '<button class="btn btn-ghost btn-xs" onclick="emailReport(\''+r.id+'\')" style="margin-right:3px;"><i class="fa-solid fa-envelope"></i></button>'+
       '<button class="btn btn-ghost btn-xs" onclick="if(confirm(\'Delete this report?\'))deleteReport(\''+r.id+'\')" style="color:var(--red2);"><i class="fa-solid fa-trash"></i></button></td></tr>';
@@ -3124,7 +3122,7 @@ function renderMyReports(){
   page.forEach(r=>{
     const ra=r.appliances||[],tot2=ra.length,p2=ra.filter(a=>a.result==='Pass').length,pct=tot2?Math.round(p2/tot2*100):0;
     const st=r.status==='completed'?'<span class="badge bdone">Done</span>':'<span class="badge bdraft">Draft</span>';
-    tbody.innerHTML+='<tr><td><strong>'+esc(r.refNumber)+'</strong></td><td>'+esc(r.landlordName||r.agencyName||'—')+'<small>'+esc((r.propertyAddress||'').split('\n')[0])+'</small></td><td style="font-size:.8rem;">'+fd(r.testDate)+'</td><td>'+tot2+'</td><td><span style="color:'+(pct>=90?'var(--green2)':'var(--amber2)')+';">'+pct+'%</span></td><td>'+st+'</td><td><button class="btn btn-ghost btn-xs" onclick="editReport(\''+r.id+'\')"><i class="fa-solid fa-pen"></i> Edit</button></td></tr>';
+    tbody.innerHTML+='<tr><td><strong>'+esc(r.refNumber)+'</strong></td><td>'+esc(r.landlordName||r.agencyName||'—')+'<small>'+esc((r.propertyAddress||'').split('\n')[0])+'</small></td><td style="font-size:.8rem;">'+fd(r.testDate)+'</td><td>'+tot2+'</td><td><span style="color:'+(pct>=90?'var(--green2)':'var(--amber2)')+';">'+pct+'%</span></td><td>'+st+'</td><td style="white-space:nowrap;"><button class="btn btn-ghost btn-xs" onclick="editReport(\''+r.id+'\')" style="margin-right:3px;"><i class="fa-solid fa-pen"></i></button><button class="btn btn-ghost btn-xs" onclick="downloadReportPDF(\''+r.id+'\')" style="margin-right:3px;" title="Download PDF"><i class="fa-solid fa-file-pdf"></i></button><button class="btn btn-ghost btn-xs" onclick="printReportDirect(\''+r.id+'\')" style="margin-right:3px;" title="Print"><i class="fa-solid fa-print"></i></button><button class="btn btn-ghost btn-xs" onclick="emailReport(\''+r.id+'\')" title="Email"><i class="fa-solid fa-envelope"></i></button></td></tr>';
   });
   if(!page.length)tbody.innerHTML='<tr><td colspan="7"><div class="empty"><div class="empty-ico">📋</div><div class="empty-title">No reports yet</div></div></td></tr>';
   const pager=ge('myrep-pager');pager.innerHTML='';
@@ -3640,7 +3638,10 @@ async function runBatchZIP(){
   }catch(e){toast('ZIP failed: '+e.message,'error');btn.disabled=false;btn.textContent='📦 Download ZIP';}
   finally{const ov=ge('pdf-overlay');if(ov)ov.classList.remove('show');}
 }
-async function buildOffscreenPDF(r){
+function buildCertPageDivs(r){
+  /* Builds the offscreen certificate page DOM for report r — shared by the batch ZIP
+     export, "Download PDF" from a list row, and "Print" from a list row, so none of
+     them need to load the report into the live edit form first. */
   const wrap=document.createElement('div');
   wrap.style.cssText='position:fixed;left:-9999px;top:0;width:794px;background:white;z-index:-1;';
   document.body.appendChild(wrap);
@@ -3669,7 +3670,6 @@ async function buildOffscreenPDF(r){
         +'<b>Engineer:</b> '+esc(r.engineer||'—')+'</div></div>';
     }
     const empty=pg.cap-(pg.items.reduce((s,a)=>s+a._c,0));
-    /* Same continuous zebra stripe fix applied to the standalone PDF-page builder. */
     let rows=pg.items.map((app,i)=>'<tr style="background:'+(i%2===0?rowBg:'')+'"><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;">'+esc(app.assetId)+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;white-space:pre-wrap;">'+esc(app._d)+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;">'+esc(app.testInstrument)+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;">'+fd(app.date)+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;">'+app.retestPeriod+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;">'+fd(app.nextTest)+'</td><td style="padding:3px 5px;border-bottom:1px solid #e2e8f0;"><span style="padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;background:'+(app.result==='Pass'?'#d1fae5':'#fee2e2')+';color:'+(app.result==='Pass'?'#065f46':'#991b1b')+';">'+app.result+'</span></td></tr>').join('');
     for(let i=0;i<empty;i++)rows+='<tr style="height:28px;background:'+((pg.items.length+i)%2===0?rowBg:'')+'"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
     const pageDiv=document.createElement('div');
@@ -3693,12 +3693,15 @@ async function buildOffscreenPDF(r){
       +'<span>Page '+(pi+1)+' of '+pages.length+'</span></div>';
     wrap.appendChild(pageDiv);
   });
+  return{wrap,pageDivs:[...wrap.children],pageCount:pages.length};
+}
+async function buildOffscreenPDF(r){
+  const{wrap,pageDivs}=buildCertPageDivs(r);
   let pdfBytes;
   try{
     /* Same fix as the single-report download: render each page div to its own canvas and
        add it as its own PDF page directly via jsPDF, instead of relying on html2pdf's own
        page-break detection (the repeated source of extra blank pages). */
-    const pageDivs=[...wrap.children];
     const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
     pdf.setProperties({
       title:'PAT Certificate '+(r.refNumber||''),
@@ -3715,6 +3718,60 @@ async function buildOffscreenPDF(r){
     pdfBytes=pdf.output('arraybuffer');
   }finally{if(document.body.contains(wrap))document.body.removeChild(wrap);}
   return pdfBytes;
+}
+async function downloadReportPDF(id){
+  const r=reports.find(x=>x.id===id);if(!r){toast('Report not found','error');return;}
+  if(!(r.appliances||[]).length){toast('This report has no appliances yet','warn');return;}
+  /* Loads the report into the SAME form/preview fields the Edit page uses, then calls
+     the exact same downloadPDF() the Edit page's own button calls -- guaranteed
+     pixel-identical output (fonts, footer, layout) forever, since there's only one
+     rendering pipeline instead of two that can silently drift apart. The user's own
+     in-progress draft (if any) is untouched: fillForm() for an existing report never
+     writes to localStorage, and initNewForm() restores it afterward from there. */
+  clearTimeout(saveTimer);
+  /* doPreview() has an early-exit guard that skips rebuilding #cert-pages (and instead
+     calls saveDraft(), which would have overwritten the real draft with this borrowed
+     report's data) whenever window._page isn't 'new-pat' -- which it never was here,
+     since we never actually navigate. That's why every download kept producing whatever
+     report was last genuinely open in the form. Fixing it at the source. */
+  const prevPageTracker=window._page;
+  window._page='new-pat';
+  fillForm(r);
+  /* The New PAT Test page is normally hidden via display:none when another page (like
+     History) is active -- html2canvas can't capture anything inside a display:none
+     ancestor, it has no layout at all. Render it off-screen instead (still real
+     layout, just visually out of view) so this works without a jarring flash of the
+     form appearing on screen for whoever's sitting on the list page. */
+  const pg=ge('page-new-pat');
+  const prevStyle=pg?pg.getAttribute('style'):null;
+  if(pg)pg.style.cssText='position:fixed;left:-9999px;top:0;display:flex;flex-direction:column;width:1200px;';
+  try{
+    await downloadPDF();
+  }finally{
+    if(pg){if(prevStyle)pg.setAttribute('style',prevStyle);else pg.removeAttribute('style');}
+    window._page=prevPageTracker;
+    initNewForm(false);
+  }
+}
+async function printReportDirect(id){
+  const r=reports.find(x=>x.id===id);if(!r){toast('Report not found','error');return;}
+  if(!(r.appliances||[]).length){toast('This report has no appliances yet','warn');return;}
+  clearTimeout(saveTimer);
+  const prevPageTracker=window._page;
+  window._page='new-pat';
+  fillForm(r);
+  const pg=ge('page-new-pat');
+  const prevStyle=pg?pg.getAttribute('style'):null;
+  if(pg)pg.style.cssText='position:fixed;left:-9999px;top:0;display:flex;flex-direction:column;width:1200px;';
+  printCertificate();
+  /* printCertificate() runs its own internal delayed steps (build print-target, open the
+     print dialog, clean up) rather than being awaitable, so the restore is delayed just
+     past its own cleanup timer to avoid pulling the layout out from under it mid-render. */
+  setTimeout(()=>{
+    if(pg){if(prevStyle)pg.setAttribute('style',prevStyle);else pg.removeAttribute('style');}
+    window._page=prevPageTracker;
+    initNewForm(false);
+  },2600);
 }
 
 /* ─── SETTINGS ─── */
