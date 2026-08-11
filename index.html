@@ -388,6 +388,21 @@ body.dark-theme .as_{background:var(--green-dim);border-color:rgba(34,197,94,.22
 
 /* ─── CERTIFICATE A4 ─── */
 .cert-scroll{display:flex;flex-direction:column;gap:18px;}
+.mobile-preview-btn{display:none;}
+.mobile-preview-close{display:none;}
+@media(max-width:860px){
+  /* The A4 preview is a fixed 210mm-wide element — meaningless squeezed into a 375px
+     screen. Hide it inline by default and open it as a full-screen overlay instead,
+     where the browser's native pinch-zoom (not disabled by the viewport meta tag) does
+     the magnification, rather than trying to reflow the certificate itself for mobile. */
+  .cert-scroll{display:none;}
+  .cert-scroll.mobile-preview-open{
+    display:flex;position:fixed;inset:0;z-index:485;background:rgba(15,23,42,.92);
+    overflow:auto;padding:70px 14px 40px;margin:0;align-items:center;
+  }
+  .mobile-preview-btn{display:inline-flex;}
+  .mobile-preview-close.show{display:flex;position:fixed;top:14px;right:14px;z-index:486;}
+}
 .prev-label{font-size:.72rem;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:10px;}
 .a4{background:white;width:210mm;height:297mm;padding:12mm 16mm 14mm;box-sizing:border-box;display:flex;flex-direction:column;box-shadow:0 2px 16px rgba(15,23,42,.14),0 8px 30px rgba(15,23,42,.08);border-radius:4px;font-size:var(--fbase,0.7rem);color:#0f172a;position:relative;overflow:hidden;}
 .a4.draft-wm::before{content:'DRAFT';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:110px;font-weight:900;color:rgba(0,0,0,.04);pointer-events:none;white-space:nowrap;font-family:'DM Sans',sans-serif;}
@@ -495,10 +510,66 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
 /* ─── RESPONSIVE ─── */
 @media(max-width:900px){
   :root{--sw:0px;}
-  #sidebar{display:none;}
+  /* Sidebar becomes an off-canvas drawer instead of vanishing entirely — this is a pure
+     CSS breakpoint, so it auto-adapts to actual screen width/orientation with no device
+     sniffing: an iPad in portrait (~768-834px) gets this drawer, the same iPad rotated to
+     landscape (~1024px+) automatically gets the full desktop sidebar back. */
+  #sidebar{
+    display:flex;position:fixed;top:0;left:0;width:280px;max-width:85vw;height:100vh;height:100dvh;
+    transform:translateX(-100%);transition:transform .28s ease;z-index:480;
+    box-shadow:2px 0 24px rgba(0,0,0,.25);
+  }
+  #sidebar.mobile-open{transform:translateX(0);}
+  #mobile-nav-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:479;}
+  #mobile-nav-backdrop.show{display:block;}
+  #mobile-topbar{display:flex;}
+  /* Touch targets — nav items and buttons get real tap room instead of desktop's tighter
+     mouse-oriented padding. */
+  .ni{min-height:46px;}
+  .btn,.btn-icon,button{min-height:38px;}
   .g2{grid-template-columns:1fr;}
   .full{grid-column:span 1;}
 }
+@media(max-width:860px){
+  /* Appliance entry table → stacked cards. This is the page engineers actually use in
+     the field, so it gets its own slightly wider breakpoint than the nav drawer —
+     an iPad in portrait gets the card layout here even before it needs the drawer. */
+  .app-table thead{display:none;}
+  .app-table,.app-table tbody,.app-table tr,.app-table td{display:block;width:100%;}
+  .app-table tr{border:1px solid var(--b2);border-radius:var(--rsm);margin-bottom:10px;padding:10px 12px;background:var(--s1);}
+  .app-table td{border:none;padding:7px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:38px;}
+  .app-table td[data-label]::before{content:attr(data-label);font-weight:600;font-size:.68rem;text-transform:uppercase;letter-spacing:.3px;color:var(--txt3);flex-shrink:0;width:80px;}
+  .app-table td[data-label=""]::before{display:none;}
+  .app-table td[data-label="Description"]{align-items:flex-start;}
+  .app-table td[data-label="Description"]::before{padding-top:6px;}
+  .app-table td>input,.app-table td>select,.app-table td>.acw{flex:1;min-width:0;}
+  .app-table td[data-label=""]{justify-content:flex-end;padding:0;}
+
+  /* Same card treatment for standard data tables — History, My Reports, Renewals — so
+     wide multi-column report rows don't force horizontal scrolling on a phone either. */
+  .data-tbl thead{display:none;}
+  .data-tbl,.data-tbl tbody,.data-tbl tr,.data-tbl td{display:block;width:100%;}
+  .data-tbl tr{border:1px solid var(--b2);border-radius:var(--rsm);margin-bottom:10px;padding:10px 12px;background:var(--s1);}
+  .data-tbl td{border:none;padding:5px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .data-tbl td[data-label]::before{content:attr(data-label);font-weight:600;font-size:.68rem;text-transform:uppercase;letter-spacing:.3px;color:var(--txt3);flex-shrink:0;}
+  .data-tbl td[data-label=""]::before{display:none;}
+}
+.filters-toggle-btn{display:none;}
+.filters-extra{display:contents;}
+@media(max-width:860px){
+  .filters-toggle-btn{display:inline-flex;}
+  .filters-extra{display:none;width:100%;flex-wrap:wrap;gap:9px;margin-top:9px;}
+  .filters-extra.show{display:flex;}
+  .filters-extra select,.filters-extra input{width:100%!important;flex:1 1 45%;}
+}
+.stabs-mobile-select{display:none;}
+@media(max-width:860px){
+  .stabs{display:none;}
+  .stabs-mobile-select{display:block;width:100%;margin-bottom:16px;font-weight:600;padding:10px 12px;}
+}
+#mobile-topbar{display:none;position:sticky;top:0;z-index:50;align-items:center;gap:10px;padding:10px 14px;background:var(--s1);border-bottom:1px solid var(--b1);flex-shrink:0;}
+#mobile-topbar .mt-burger{width:38px;height:38px;flex-shrink:0;border-radius:var(--rsm);border:1px solid var(--b2);background:var(--s2);display:flex;align-items:center;justify-content:center;color:var(--txt);font-size:1.05rem;}
+#mobile-topbar .mt-title{font-weight:700;font-size:.98rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* ─── FIREBASE USAGE DASHBOARD ─── */
 .fb-usage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-bottom:16px;}
@@ -670,8 +741,17 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
   </div>
 </div>
 
+<!-- MOBILE NAV BACKDROP -->
+<div id="mobile-nav-backdrop" onclick="closeMobileNav()"></div>
+
 <!-- MAIN CONTENT -->
 <div id="main">
+
+  <!-- MOBILE TOPBAR -->
+  <div id="mobile-topbar">
+    <button class="mt-burger" onclick="toggleMobileNav()" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
+    <div class="mt-title" id="mobile-page-title">Dashboard</div>
+  </div>
 
   <!-- NOTICE BAR -->
   <div class="notice-bar" id="notice-bar">
@@ -721,11 +801,11 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
       <div class="g2" style="gap:16px;">
         <div class="card ct">
           <div class="card-hd"><div class="card-title">Recent Properties</div><button class="btn btn-ghost btn-xs" onclick="nav('history')">View All →</button></div>
-          <div class="tw"><table><thead><tr><th>Property</th><th>Ref / Client</th><th>Date</th><th></th></tr></thead><tbody id="dash-recent"></tbody></table></div>
+          <div class="tw"><table class="data-tbl"><thead><tr><th>Property</th><th>Ref / Client</th><th>Date</th><th></th></tr></thead><tbody id="dash-recent"></tbody></table></div>
         </div>
         <div class="card cta">
           <div class="card-hd"><div class="card-title">Due Soon</div><button class="btn btn-ghost btn-xs" onclick="nav('renewals')">View All →</button></div>
-          <div class="tw"><table><thead><tr><th>Property</th><th>Ref</th><th>Expires</th><th></th></tr></thead><tbody id="dash-due"></tbody></table></div>
+          <div class="tw"><table class="data-tbl"><thead><tr><th>Property</th><th>Ref</th><th>Expires</th><th></th></tr></thead><tbody id="dash-due"></tbody></table></div>
         </div>
         <div class="card ctg" style="grid-column:span 2;">
           <div class="card-hd"><div class="card-title">Last 6 Months — Properties Visited</div></div>
@@ -745,9 +825,9 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
       <div class="ph-left"><div class="ph-title" id="form-title">New PAT Test</div><div class="ph-sub">Test Date applies to all rows · Ctrl+S = Draft · Ctrl+Shift+S = Complete</div></div>
       <div class="ph-acts" id="form-btns">
         <button class="btn btn-ghost btn-sm" onclick="clearForm()"><i class="fa-solid fa-trash"></i> Clear</button>
-        <button class="btn btn-ghost btn-sm" onclick="downloadPDF()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
-        <button class="btn btn-ghost btn-sm" onclick="printCertificate()"><i class="fa-solid fa-print"></i> Print</button>
-        <button class="btn btn-ghost btn-sm" onclick="emailClient()"><i class="fa-solid fa-envelope"></i> Email</button>
+        <button class="btn btn-ghost btn-sm" id="btn-pdf" onclick="downloadPDF()" title="Downloads instantly, no dialog. Use Print for a smaller, sharper file."><i class="fa-solid fa-file-pdf"></i> PDF</button>
+        <button class="btn btn-ghost btn-sm" id="btn-print" onclick="printCertificate()"><i class="fa-solid fa-print"></i> Print</button>
+        <button class="btn btn-ghost btn-sm" id="btn-email" onclick="emailClient()"><i class="fa-solid fa-envelope"></i> Email</button>
         <button class="btn btn-primary btn-sm" onclick="saveReport(false)"><i class="fa-solid fa-floppy-disk"></i> Draft</button>
         <button class="btn btn-success btn-sm" onclick="saveReport(true)"><i class="fa-solid fa-check"></i> Complete</button>
       </div>
@@ -795,7 +875,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
               </div>
             </div>
             <div class="tw">
-              <table><thead><tr>
+              <table class="app-table"><thead><tr>
                 <th style="width:88px;">Asset #</th><th>Description</th><th style="width:108px;">Instrument</th>
                 <th style="width:100px;">Date</th><th style="width:80px;">Period</th>
                 <th style="width:100px;">Next Due</th><th style="width:72px;">Result</th><th style="width:34px;"></th>
@@ -811,12 +891,16 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
             </div>
           </div>
         </form>
-        <div class="prev-label" style="margin-top:8px;">Live Certificate Preview</div>
+        <div class="prev-label" style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+          <span>Live Certificate Preview</span>
+          <button type="button" class="btn btn-primary btn-sm mobile-preview-btn" onclick="toggleCertPreviewMobile()"><i class="fa-solid fa-expand"></i> Preview Certificate</button>
+        </div>
         <div id="print-tip" style="background:rgba(37,99,235,.06);border:1px solid rgba(37,99,235,.15);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:.79rem;color:var(--accent2);display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;">
           <span style="flex-shrink:0;">💡</span>
           <div style="flex:1;color:var(--txt2);">① <strong><i class="fa-solid fa-file-pdf"></i> PDF</strong> — pixel-perfect A4 &nbsp;·&nbsp; ② <strong><i class="fa-solid fa-print"></i> Print</strong> — browser print → No Margins → A4</div>
           <button onclick="this.parentElement.style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--txt3);font-size:.9rem;flex-shrink:0;">✕</button>
         </div>
+        <button type="button" class="btn btn-primary mobile-preview-close" onclick="toggleCertPreviewMobile()"><i class="fa-solid fa-xmark"></i> Close Preview</button>
         <div class="cert-scroll" id="cert-pages"></div>
       </div>
 
@@ -884,7 +968,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
         <div style="display:flex;flex-direction:column;gap:6px;margin-top:2px;">
           <button class="btn btn-ghost btn-sm btn-block" onclick="addRow()" style="justify-content:flex-start;"><i class="fa-solid fa-plus"></i> Add appliance row</button>
           <button class="btn btn-purple btn-sm btn-block" onclick="openScanModal()" style="justify-content:flex-start;"><i class="fa-solid fa-camera"></i> Scan Handwriting</button>
-          <button class="btn btn-ghost btn-sm btn-block" onclick="downloadPDF()" style="justify-content:flex-start;"><i class="fa-solid fa-file-pdf"></i> Download PDF</button>
+          <button class="btn btn-ghost btn-sm btn-block" id="btn-pdf-side" onclick="downloadPDF()" style="justify-content:flex-start;" title="Downloads instantly, no dialog. Use Print for a smaller, sharper file."><i class="fa-solid fa-file-pdf"></i> Download PDF</button>
         </div>
 
       </div><!-- /pat-side-col -->
@@ -907,6 +991,8 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
           <div style="position:relative;flex:1;min-width:200px;">
             <input type="text" id="hist-q" placeholder="🔍 Search ref, client, address..." style="padding-left:14px;" oninput="renderHistory()">
           </div>
+          <button type="button" class="btn btn-ghost btn-sm filters-toggle-btn" onclick="toggleFilters('hist-filters-extra')"><i class="fa-solid fa-sliders"></i> Filters</button>
+          <div id="hist-filters-extra" class="filters-extra">
           <select id="hist-st" style="width:155px;" onchange="renderHistory()">
             <option value="all">All Statuses</option><option value="completed">✅ Completed</option><option value="draft">📝 Draft</option>
           </select>
@@ -916,10 +1002,17 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
           <select id="hist-so" style="width:150px;" onchange="renderHistory()">
             <option value="dd">Newest First</option><option value="da">Oldest First</option><option value="ref">By Ref</option><option value="cl">By Client</option>
           </select>
+          <select id="hist-eng" style="width:150px;" onchange="renderHistory()">
+            <option value="all">All Engineers</option>
+          </select>
+          <input type="date" id="hist-from" title="From date" style="width:140px;" onchange="renderHistory()">
+          <input type="date" id="hist-to" title="To date" style="width:140px;" onchange="renderHistory()">
+          <button class="btn btn-ghost btn-sm" onclick="ge('hist-q').value='';ge('hist-st').value='all';ge('hist-ct').value='all';ge('hist-eng').value='all';ge('hist-from').value='';ge('hist-to').value='';renderHistory();"><i class="fa-solid fa-xmark"></i> Clear Filters</button>
+          </div>
         </div>
       </div>
       <div class="card">
-        <div class="tw"><table><thead><tr>
+        <div class="tw"><table class="data-tbl"><thead><tr>
           <th><input type="checkbox" id="hist-chk-all" onchange="document.querySelectorAll('.hist-chk').forEach(c=>c.checked=this.checked)"></th>
           <th>Ref #</th><th>Client</th><th>Property</th><th>Date</th>
           <th>Items</th><th>Pass%</th><th>Certificate</th><th>Status</th><th>Actions</th>
@@ -935,7 +1028,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
       <div class="ph-left"><div class="ph-title">Certificate Renewals</div><div class="ph-sub">Track expiring and overdue certificates</div></div>
       <div class="ph-acts">
         <button class="btn btn-ghost btn-sm" onclick="exportRenewalsCSV()"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
-        <button class="btn btn-primary btn-sm" onclick="bulkRemind()"><i class="fa-solid fa-envelope"></i> Bulk Remind</button>
+        <button class="btn btn-primary btn-sm" id="bulk-remind-btn" onclick="bulkRemind()" style="display:none;"><i class="fa-solid fa-envelope"></i> Bulk Remind</button>
       </div>
     </div>
     <div class="pb">
@@ -953,7 +1046,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
         <button class="btn btn-ghost btn-sm" onclick="setRF('vl')">All Valid</button>
       </div>
       <div class="card">
-        <div class="tw"><table><thead><tr>
+        <div class="tw"><table class="data-tbl"><thead><tr>
           <th><input type="checkbox" id="chk-all" onchange="toggleAllChk(this)"></th>
           <th>Ref</th><th>Client / Address</th><th>Items</th>
           <th>Test Date</th><th>Expires</th><th>Days Left</th><th>Actions</th>
@@ -1014,7 +1107,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
       </div>
       <div class="card">
         <div class="card-hd"><div class="card-title">My Recent Reports</div></div>
-        <div class="tw"><table><thead><tr>
+        <div class="tw"><table class="data-tbl"><thead><tr>
           <th>Ref #</th><th>Client / Address</th><th>Date</th><th>Items</th><th>Pass%</th><th>Status</th><th>Actions</th>
         </tr></thead><tbody id="myrep-tbody"></tbody></table></div>
         <div class="pager" id="myrep-pager"></div>
@@ -1049,6 +1142,20 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
     <div class="pb">
       <div id="settings-blocked" class="alert ad" style="display:none;"><span>🔒</span><div><div class="at_">Access Restricted</div><div class="ab_">Settings can only be changed by the administrator.</div></div></div>
       <div id="settings-content">
+        <select id="stabs-mobile" class="stabs-mobile-select" onchange="stab(this.value)">
+          <option value="company">🏢 Company</option>
+          <option value="branding">🎨 Branding</option>
+          <option value="email">✉️ Email</option>
+          <option value="defaults">⚙️ Defaults</option>
+          <option value="scan">📷 AI Scan</option>
+          <option value="cert">📄 Certificate</option>
+          <option value="features">🔧 Features</option>
+          <option value="users">👥 Users</option>
+          <option value="notice">📢 Notice</option>
+          <option value="usage">📊 Usage</option>
+          <option value="firebase">🔥 Firebase</option>
+          <option value="data">💾 Data</option>
+        </select>
         <div class="stabs">
           <div class="stab on" onclick="stab('company')">🏢 Company</div>
           <div class="stab" onclick="stab('branding')">🎨 Branding</div>
@@ -1117,6 +1224,8 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
                 <input type="file" id="f-sig" accept="image/*" style="display:none;" onchange="uploadLogo(this,'engineerSignature','pr-sig')">
                 <button class="btn btn-ghost btn-xs" onclick="clearLogo('engineerSignature','pr-sig')"><i class="fa-solid fa-xmark"></i> Clear</button></div>
             </div>
+            <button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="compressExistingImages()"><i class="fa-solid fa-compress"></i> Optimize Already-Uploaded Images</button>
+            <div class="hint" style="margin-top:4px;">If your PDFs are unexpectedly large, click this — older uploads saved before image compression was added may still be full-size.</div>
             <div class="slbl">Certificate Colours</div>
             <div class="g4" style="gap:12px;">
               <div class="fg"><label>Header Background</label><input type="color" id="s-ch" value="#1e3a5f"></div>
@@ -1949,8 +2058,18 @@ function initAuthParticles(){
     });
     raf=requestAnimationFrame(step);
   }
-  resize();makeParticles();step();
-  window.addEventListener('resize',()=>{cancelAnimationFrame(raf);resize();makeParticles();step();});
+  function isVisible(){return cv.parentElement.getBoundingClientRect().width>0;}
+  resize();
+  if(isVisible()){makeParticles();step();}
+  window.addEventListener('resize',()=>{
+    cancelAnimationFrame(raf);
+    resize();
+    /* Rotating an iPad between portrait/landscape crosses the breakpoint that shows or
+       hides this panel — only run the (moderately expensive, all-pairs distance check)
+       animation loop when it's actually going to be seen, not burning battery on a
+       canvas nobody can see. */
+    if(isVisible()){makeParticles();step();}
+  });
 }
 initAuthParticles();
 
@@ -1997,10 +2116,12 @@ function checkAdmin(){
   const adminEmail=(cfg?.adminEmail||'').toLowerCase().trim();
   isAdmin=!adminEmail||curUser?.email?.toLowerCase()===adminEmail;
   const rb=ge('sb-role');if(rb)rb.textContent=isAdmin?'admin':'engineer';
-  const sec=ge('sb-sec-admin'),ns=ge('nav-settings'),na=ge('nav-audit');
+  const sec=ge('sb-sec-admin'),ns=ge('nav-settings'),na=ge('nav-audit'),br=ge('bulk-remind-btn');
   if(sec)sec.style.display=isAdmin?'':'none';
   if(ns)ns.style.display=isAdmin?'':'none';
   if(na)na.style.display=isAdmin&&getFt('audit')?'':'none';
+  /* Bulk Remind is admin-only for now while it's still being worked on */
+  if(br)br.style.display=isAdmin?'':'none';
   const sc=ge('settings-sub');if(sc)sc.textContent=isAdmin?'Admin access — full control':'View only';
   const adDisp=ge('admin-display');if(adDisp)adDisp.textContent=cfg?.adminEmail?'Current admin: '+cfg.adminEmail:'No admin set — all users have admin access';
   const adDispU=ge('admin-display-users');if(adDispU)adDispU.textContent='Current Admin: '+(cfg?.adminEmail||'Not set');
@@ -2320,12 +2441,43 @@ async function loadMoreReports(){
 }
 
 /* ─── NAVIGATION ─── */
+const PAGE_TITLES={dashboard:'Dashboard','new-pat':'New PAT Test',history:'Test History',renewals:'Renewals',analytics:'Analytics','my-reports':'My Reports',clients:'Clients',settings:'Settings',audit:'Audit Log'};
+function toggleCertPreviewMobile(){
+  const cs=ge('cert-pages'),closeBtn=document.querySelector('.mobile-preview-close');
+  const opening=!cs.classList.contains('mobile-preview-open');
+  cs.classList.toggle('mobile-preview-open',opening);
+  if(closeBtn)closeBtn.classList.toggle('show',opening);
+  /* Lock the page behind the overlay from scrolling while it's open, so a swipe to pan
+     around the (possibly multi-page) certificate doesn't also scroll the form beneath it. */
+  document.body.style.overflow=opening?'hidden':'';
+}
+function toggleMobileNav(){
+  const sb=ge('sidebar'),bd=ge('mobile-nav-backdrop');
+  const opening=!sb.classList.contains('mobile-open');
+  sb.classList.toggle('mobile-open',opening);
+  bd.classList.toggle('show',opening);
+}
+function closeMobileNav(){
+  const sb=ge('sidebar'),bd=ge('mobile-nav-backdrop');
+  sb.classList.remove('mobile-open');bd.classList.remove('show');
+}
+function toggleFilters(id){
+  const el=ge(id);if(el)el.classList.toggle('show');
+}
 function nav(page){
   if(!isAdmin&&(page==='settings'||page==='audit')){toast('Admin access required','warn');return;}
+  closeMobileNav();
+  const csOpen=ge('cert-pages');
+  if(csOpen&&csOpen.classList.contains('mobile-preview-open')){
+    csOpen.classList.remove('mobile-preview-open');
+    const cb=document.querySelector('.mobile-preview-close');if(cb)cb.classList.remove('show');
+    document.body.style.overflow='';
+  }
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   const pg=ge('page-'+page);if(pg)pg.classList.add('on');
   const ni=document.querySelector('[data-page="'+page+'"]');if(ni)ni.classList.add('on');
+  const mt=ge('mobile-page-title');if(mt)mt.textContent=PAGE_TITLES[page]||page;
   window._page=page;
   if(page==='analytics')renderAnalytics();
   if(page==='renewals')renderRenewals();
@@ -2387,13 +2539,13 @@ function renderDashboard(){
     al.innerHTML+='<div class="alert ad"><span>⚠️</span><div><div class="at_">'+expired+' Expired Certificate'+(expired!==1?'s':'')+'</div><div class="ab_"><a href="#" onclick="nav(\'renewals\');setRF(\'ov\')">View Overdue →</a></div></div></div>';
   const rt=ge('dash-recent');rt.innerHTML='';
   [...reports].sort((a,b)=>new Date(b.testDate)-new Date(a.testDate)).slice(0,5).forEach(r=>{
-    rt.innerHTML+='<tr><td><strong>'+esc((r.propertyAddress||'—').split('\n')[0])+'</strong></td><td><small>'+esc(r.refNumber)+' · '+esc(r.landlordName||r.agencyName||'—')+'</small></td><td style="white-space:nowrap;font-size:.8rem;">'+fd(r.testDate)+'</td><td><button class="btn btn-ghost btn-xs" onclick="editReport(\''+r.id+'\')"><i class="fa-solid fa-pen"></i> Edit</button></td></tr>';
+    rt.innerHTML+='<tr><td data-label="Property"><strong>'+esc((r.propertyAddress||'—').split('\n')[0])+'</strong></td><td data-label="Ref / Client"><small>'+esc(r.refNumber)+' · '+esc(r.landlordName||r.agencyName||'—')+'</small></td><td data-label="Date" style="white-space:nowrap;font-size:.8rem;">'+fd(r.testDate)+'</td><td data-label=""><button class="btn btn-ghost btn-xs" onclick="editReport(\''+r.id+'\')"><i class="fa-solid fa-pen"></i> Edit</button></td></tr>';
   });
   if(!reports.length)rt.innerHTML='<tr><td colspan="4"><div class="empty"><div class="empty-ico">📋</div><div class="empty-title">No properties yet</div><div class="empty-sub">Create your first PAT test</div></div></td></tr>';
   const dt=ge('dash-due');dt.innerHTML='';
   const dueSoon=reports.filter(r=>r.status==='completed'&&(r.appliances||[]).length).map(r=>({...r,_e:earliest(r)})).filter(r=>r._e&&r._e<=d30).sort((a,b)=>a._e-b._e).slice(0,5);
   if(!dueSoon.length){dt.innerHTML='<tr><td colspan="4" style="color:var(--green);font-size:.88rem;padding:16px;">✅ Nothing due in 30 days</td></tr>';}
-  else{dueSoon.forEach(r=>{const ov=r._e<now;dt.innerHTML+='<tr><td><strong>'+esc((r.propertyAddress||'—').split('\n')[0])+'</strong></td><td><small>'+esc(r.refNumber)+'</small></td><td style="color:'+(ov?'var(--red)':'var(--amber)')+';white-space:nowrap;font-size:.8rem;">'+fd(r._e.toISOString().split('T')[0])+(ov?' ⚠':'')+'</td><td><button class="btn btn-ghost btn-xs" onclick="renewCert(\''+r.id+'\')"><i class="fa-solid fa-rotate"></i></button></td></tr>';});}
+  else{dueSoon.forEach(r=>{const ov=r._e<now;dt.innerHTML+='<tr><td data-label="Property"><strong>'+esc((r.propertyAddress||'—').split('\n')[0])+'</strong></td><td data-label="Ref"><small>'+esc(r.refNumber)+'</small></td><td data-label="Expires" style="color:'+(ov?'var(--red)':'var(--amber)')+';white-space:nowrap;font-size:.8rem;">'+fd(r._e.toISOString().split('T')[0])+(ov?' ⚠':'')+'</td><td data-label=""><button class="btn btn-ghost btn-xs" onclick="renewCert(\''+r.id+'\')"><i class="fa-solid fa-rotate"></i></button></td></tr>';});}
   const draft=localStorage.getItem('ohm_draft'),dc=ge('qc-draft');
   if(draft&&getFt('autosave')){try{const d=JSON.parse(draft);setTxt('qc-desc',(d.propertyAddress||'').split('\n')[0]||'Unsaved report');dc.classList.add('show');}catch(e){dc.classList.remove('show');}}
   else dc.classList.remove('show');
@@ -2467,6 +2619,20 @@ function fillForm(d){
   const refEl=ge('pat-ref');
   if(refEl) refEl.dataset.manual = d.id ? 'true' : 'false';
   currentBaseRef=d.baseRef||(d.refNumber||'').split(' / ')[0].trim();
+  syncPdfButtonStates();
+}
+function syncPdfButtonStates(){
+  /* PDF/Print/Email are only meaningful once a certificate is actually finished — a
+     draft is by definition still being worked on, so nothing gets shared or downloaded
+     from it until it's marked Complete. */
+  const isDraft=gv('pat-status')==='draft';
+  ['btn-pdf','btn-print','btn-email','btn-pdf-side'].forEach(id=>{
+    const b=ge(id);if(!b)return;
+    b.disabled=isDraft;
+    b.style.opacity=isDraft?'.45':'';
+    b.style.cursor=isDraft?'not-allowed':'pointer';
+    b.title=isDraft?'Complete the certificate first':'';
+  });
 }
 function initNewForm(force=false){
   const acBtn=ge('autocap-toggle');
@@ -2484,6 +2650,7 @@ function initNewForm(force=false){
   if(refEl) refEl.dataset.manual = 'false';
   setTxt('form-title','New PAT Test');
   apps=[];addRow();doPreview();updateSidePanel();
+  syncPdfButtonStates();
 }
 function clearForm(){if(!confirm('Clear form? Unsaved data will be lost.'))return;localStorage.removeItem('ohm_draft');initNewForm(true);toast('Form cleared','info');}
 function previewNextRef(){
@@ -2615,14 +2782,14 @@ function renderApps(opts={}){
   tbody.innerHTML='';
   apps.forEach((a,i)=>{
     const tr=document.createElement('tr');
-    tr.innerHTML='<td><input class="ti" id="a'+i+'" value="'+esc(a.assetId)+'" onchange="upd('+i+',\'assetId\',this.value)" placeholder="A001"></td>'+
-      '<td><div class="acw"><textarea id="d'+i+'" class="ti" style="height:30px;min-height:30px;resize:vertical;" oninput="liveCapitalize(this)" onchange="upd('+i+',\'description\',this.value)" onkeydown="dTab(event,'+i+')">'+esc(a.description)+'</textarea></div></td>'+
-      '<td><input class="ti" id="i'+i+'" value="'+esc(a.testInstrument)+'" onchange="upd('+i+',\'testInstrument\',this.value)"></td>'+
-      '<td><input type="date" class="ti" id="t'+i+'" value="'+esc(a.date)+'" onchange="updDate('+i+',this.value)"></td>'+
-      '<td><select class="ts" id="p'+i+'" onchange="updPer('+i+',this.value)">'+['3','6','12','24','48'].map(n=>'<option value="'+n+' Months"'+(a.retestPeriod===n+' Months'?' selected':'')+'>'+n+'m</option>').join('')+'</select></td>'+
-      '<td><input type="date" class="ti" value="'+esc(a.nextTest)+'" readonly style="opacity:.45;cursor:default;"></td>'+
-      '<td><select class="ts" id="r'+i+'" onchange="upd('+i+',\'result\',this.value);this.style.color=this.value===\'Pass\'?\'var(--green2)\':\' var(--red2)\';" style="color:'+(a.result==='Pass'?'var(--green2)':'var(--red2)')+';font-weight:700;"><option value="Pass"'+(a.result==='Pass'?' selected':'')+'>Pass</option><option value="Fail"'+(a.result==='Fail'?' selected':'')+'>Fail</option></select></td>'+
-      '<td><button type="button" onclick="delRow('+i+')" style="background:none;border:none;color:var(--red2);cursor:pointer;padding:5px;font-size:1rem;">✕</button></td>';
+    tr.innerHTML='<td data-label="Asset #"><input class="ti" id="a'+i+'" value="'+esc(a.assetId)+'" onchange="upd('+i+',\'assetId\',this.value)" placeholder="A001"></td>'+
+      '<td data-label="Description"><div class="acw"><textarea id="d'+i+'" class="ti" style="height:30px;min-height:30px;resize:vertical;" oninput="liveCapitalize(this)" onchange="upd('+i+',\'description\',this.value)" onkeydown="dTab(event,'+i+')">'+esc(a.description)+'</textarea></div></td>'+
+      '<td data-label="Instrument"><input class="ti" id="i'+i+'" value="'+esc(a.testInstrument)+'" onchange="upd('+i+',\'testInstrument\',this.value)"></td>'+
+      '<td data-label="Date"><input type="date" class="ti" id="t'+i+'" value="'+esc(a.date)+'" onchange="updDate('+i+',this.value)"></td>'+
+      '<td data-label="Period"><select class="ts" id="p'+i+'" onchange="updPer('+i+',this.value)">'+['3','6','12','24','48'].map(n=>'<option value="'+n+' Months"'+(a.retestPeriod===n+' Months'?' selected':'')+'>'+n+'m</option>').join('')+'</select></td>'+
+      '<td data-label="Next Due"><input type="date" class="ti" value="'+esc(a.nextTest)+'" readonly style="opacity:.45;cursor:default;"></td>'+
+      '<td data-label="Result"><select class="ts" id="r'+i+'" onchange="upd('+i+',\'result\',this.value);this.style.color=this.value===\'Pass\'?\'var(--green2)\':\' var(--red2)\';" style="color:'+(a.result==='Pass'?'var(--green2)':'var(--red2)')+';font-weight:700;"><option value="Pass"'+(a.result==='Pass'?' selected':'')+'>Pass</option><option value="Fail"'+(a.result==='Fail'?' selected':'')+'>Fail</option></select></td>'+
+      '<td data-label=""><button type="button" onclick="delRow('+i+')" style="background:none;border:none;color:var(--red2);cursor:pointer;padding:5px;font-size:1rem;">✕</button></td>';
     tbody.appendChild(tr);
     if(getFt('ac'))acSetup(ge('d'+i),()=>[...new Set(reports.flatMap(r=>(r.appliances||[]).map(a=>a.description)).filter(Boolean))],val=>upd(i,'description',val));
   });
@@ -2890,9 +3057,20 @@ async function saveReport(complete){
     localStorage.removeItem('ohm_draft');
     const action=complete?'complete':idVal?'update':'create';
     await logAudit(action,complete?'Report completed':idVal?'Draft updated':'Draft created',refVal);
+    if(complete){sv('pat-status','completed');syncPdfButtonStates();}
     if(complete&&cfg.autoSend==='yes')emailClient();
     sync('ok');toast(complete?'✅ Report completed':'💾 Draft saved','success');
-    nav('history');initNewForm(true);
+    if(complete){
+      /* Certificate is now locked and finished — auto-generate the PDF straight away
+         so the office doesn't have to re-open it just to get a copy, then clear the
+         form for the next job. downloadPDF() is properly awaitable, so the form-clear
+         + navigation only happens once the file has actually finished generating —
+         no system print dialog involved, matching the plain "PDF" button behaviour. */
+      await downloadPDF();
+      nav('history');initNewForm(true);
+    }else{
+      nav('history');initNewForm(true);
+    }
   }catch(e){console.error(e);sync('err');toast('Save failed: '+e.message,'error');}
 }
 async function deleteReport(id){
@@ -2914,8 +3092,17 @@ function draftWouldBeLost(){
 }
 function editReport(id){
   const r=reports.find(x=>x.id===id);if(!r){toast('Report not found','error');return;}
+  if(r.status==='completed'){
+    /* Completed certificates are locked to prevent accidental overwrites once issued —
+       only admin can deliberately reopen one, and doing so explicitly reverts it to
+       Draft (so PDF/print/email are blocked again until it's completed a second time). */
+    if(!isAdmin){toast('This certificate is completed and locked. Only an admin can edit it.','warn');return;}
+    if(!confirm('This certificate is marked Complete. Editing it will move it back to Draft status — PDF, Print and Email will be blocked again until it\'s completed a second time. Continue?'))return;
+  }
   if(draftWouldBeLost()&&!confirm('You have an unsaved NEW report draft. Opening this report for editing will replace that draft. Continue?'))return;
-  nav('new-pat');fillForm(r);doPreview();
+  nav('new-pat');fillForm(r);
+  if(r.status==='completed'){sv('pat-status','draft');syncPdfButtonStates();}
+  doPreview();
 }
 let _renewSourceId=null;
 function renewCert(id){
@@ -2951,6 +3138,16 @@ function confirmRenew(){
 /* ─── HISTORY ─── */
 function renderHistory(){
   const q=(gv('hist-q')||'').toLowerCase(),st=gv('hist-st')||'all',ct=gv('hist-ct')||'all',so=gv('hist-so')||'dd';
+  const eng=gv('hist-eng')||'all',dFrom=gv('hist-from'),dTo=gv('hist-to');
+  /* Keep the Engineer dropdown in sync with whoever has actually logged reports, without
+     clobbering the currently-selected value while the user has a filter applied. */
+  const engSel=ge('hist-eng');
+  if(engSel){
+    const names=[...new Set(reports.map(r=>r.engineer).filter(Boolean))].sort();
+    const cur=engSel.value;
+    engSel.innerHTML='<option value="all">All Engineers</option>'+names.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');
+    if(names.includes(cur))engSel.value=cur;
+  }
   const now=new Date(),d30=new Date(now.getTime()+30*864e5);
   let rows=reports.filter(r=>{
     if(st!=='all'&&r.status!==st)return false;
@@ -2958,6 +3155,9 @@ function renderHistory(){
       if(ct==='expired'&&(!e||e>=now))return false;
       if(ct==='due'&&(!e||e<now||e>d30))return false;
       if(ct==='valid'&&e&&e<now)return false;}
+    if(eng!=='all'&&r.engineer!==eng)return false;
+    if(dFrom&&r.testDate&&r.testDate<dFrom)return false;
+    if(dTo&&r.testDate&&r.testDate>dTo)return false;
     if(q){const s=((r.refNumber||'')+' '+(r.landlordName||'')+' '+(r.agencyName||'')+' '+(r.propertyAddress||'')+' '+(r.engineer||'')).toLowerCase();if(!s.includes(q))return false;}
     return true;
   });
@@ -2988,17 +3188,17 @@ function renderHistory(){
       else certBadge='<span class="badge bok">Valid</span>';
     }
     const st2=r.status==='completed'?'<span class="badge bdone">Done</span>':'<span class="badge bdraft">Draft</span>';
-    tbody.innerHTML+='<tr><td><input type="checkbox" class="hist-chk" data-id="'+r.id+'"></td>'+
-      '<td><strong>'+esc(r.refNumber)+'</strong></td>'+
-      '<td>'+esc(r.landlordName||r.agencyName||'—')+'<small>'+esc(r.engineer||'')+'</small></td>'+
-      '<td><small>'+esc((r.propertyAddress||'').split('\n').slice(0,2).join(', '))+'</small></td>'+
-      '<td style="white-space:nowrap;font-size:.8rem;">'+fd(r.testDate)+'</td>'+
-      '<td style="text-align:center;">'+tot+'</td>'+
-      '<td><span style="color:'+(pct>=90?'var(--green2)':pct>=70?'var(--amber2)':'var(--red2)')+';font-weight:700;">'+pct+'%</span></td>'+
-      '<td>'+certBadge+'</td>'+
-      '<td>'+st2+'</td>'+
-      '<td style="white-space:nowrap;"><button class="btn btn-ghost btn-xs" onclick="editReport(\''+r.id+'\')" style="margin-right:3px;"><i class="fa-solid fa-pen"></i></button>'+
-      '<button class="btn btn-ghost btn-xs" onclick="downloadReportPDF(\''+r.id+'\')" style="margin-right:3px;" title="Download PDF"><i class="fa-solid fa-file-pdf"></i></button>'+
+    tbody.innerHTML+='<tr><td data-label=""><input type="checkbox" class="hist-chk" data-id="'+r.id+'"></td>'+
+      '<td data-label="Ref #"><strong>'+esc(r.refNumber)+'</strong></td>'+
+      '<td data-label="Client">'+esc(r.landlordName||r.agencyName||'—')+'<small>'+esc(r.engineer||'')+'</small></td>'+
+      '<td data-label="Property"><small>'+esc((r.propertyAddress||'').split('\n').slice(0,2).join(', '))+'</small></td>'+
+      '<td data-label="Date" style="white-space:nowrap;font-size:.8rem;">'+fd(r.testDate)+'</td>'+
+      '<td data-label="Items" style="text-align:center;">'+tot+'</td>'+
+      '<td data-label="Pass%"><span style="color:'+(pct>=90?'var(--green2)':pct>=70?'var(--amber2)':'var(--red2)')+';font-weight:700;">'+pct+'%</span></td>'+
+      '<td data-label="Certificate">'+certBadge+'</td>'+
+      '<td data-label="Status">'+st2+'</td>'+
+      '<td data-label="Actions" style="white-space:nowrap;"><button class="btn btn-ghost btn-xs" onclick="editReport(\''+r.id+'\')" style="margin-right:3px;"><i class="fa-solid fa-pen"></i></button>'+
+      '<button class="btn btn-ghost btn-xs" onclick="downloadReportPDF(\''+r.id+'\')" style="margin-right:3px;" title="Download PDF instantly (no dialog)"><i class="fa-solid fa-file-pdf"></i></button>'+
       '<button class="btn btn-ghost btn-xs" onclick="printReportDirect(\''+r.id+'\')" style="margin-right:3px;" title="Print"><i class="fa-solid fa-print"></i></button>'+
       '<button class="btn btn-ghost btn-xs" onclick="copyText(\''+esc(jsq(r.refNumber))+'\')" style="margin-right:3px;" title="Copy Ref"><i class="fa-solid fa-copy"></i></button>'+
       '<button class="btn btn-ghost btn-xs" onclick="emailReport(\''+r.id+'\')" style="margin-right:3px;"><i class="fa-solid fa-envelope"></i></button>'+
@@ -3031,13 +3231,13 @@ function renderRenewals(){
     const days=Math.ceil((r._e-now)/864e5);
     const dc=days<0?'var(--red2)':days<=30?'var(--amber2)':'var(--green2)';
     const ra=r.appliances||[];
-    tbody.innerHTML+='<tr><td><input type="checkbox" class="ren-chk" data-id="'+r.id+'"></td>'+
-      '<td><strong>'+esc(r.refNumber)+'</strong></td>'+
-      '<td>'+esc(r.landlordName||r.agencyName||'—')+'<small>'+esc((r.propertyAddress||'').split('\n')[0])+'</small></td>'+
-      '<td>'+ra.length+'</td><td style="font-size:.8rem;">'+fd(r.testDate)+'</td>'+
-      '<td style="font-size:.8rem;">'+fd(r._e.toISOString().split('T')[0])+'</td>'+
-      '<td style="font-weight:700;color:'+dc+';">'+days+'d</td>'+
-      '<td><button class="btn btn-ghost btn-xs" onclick="emailReport(\''+r.id+'\')" style="margin-right:3px;"><i class="fa-solid fa-envelope"></i></button>'+
+    tbody.innerHTML+='<tr><td data-label=""><input type="checkbox" class="ren-chk" data-id="'+r.id+'"></td>'+
+      '<td data-label="Ref"><strong>'+esc(r.refNumber)+'</strong></td>'+
+      '<td data-label="Client / Address">'+esc(r.landlordName||r.agencyName||'—')+'<small>'+esc((r.propertyAddress||'').split('\n')[0])+'</small></td>'+
+      '<td data-label="Items">'+ra.length+'</td><td data-label="Test Date" style="font-size:.8rem;">'+fd(r.testDate)+'</td>'+
+      '<td data-label="Expires" style="font-size:.8rem;">'+fd(r._e.toISOString().split('T')[0])+'</td>'+
+      '<td data-label="Days Left" style="font-weight:700;color:'+dc+';">'+days+'d</td>'+
+      '<td data-label="Actions"><button class="btn btn-ghost btn-xs" onclick="emailReport(\''+r.id+'\')" style="margin-right:3px;"><i class="fa-solid fa-envelope"></i></button>'+
       '<button class="btn btn-ghost btn-xs" onclick="renewCert(\''+r.id+'\')"><i class="fa-solid fa-rotate"></i> Renew</button></td></tr>';
   });
   if(!rows.length)tbody.innerHTML='<tr><td colspan="8"><div class="empty"><div class="empty-ico">🎉</div><div class="empty-title">No certificates in this view</div></div></td></tr>';
@@ -3122,7 +3322,7 @@ function renderMyReports(){
   page.forEach(r=>{
     const ra=r.appliances||[],tot2=ra.length,p2=ra.filter(a=>a.result==='Pass').length,pct=tot2?Math.round(p2/tot2*100):0;
     const st=r.status==='completed'?'<span class="badge bdone">Done</span>':'<span class="badge bdraft">Draft</span>';
-    tbody.innerHTML+='<tr><td><strong>'+esc(r.refNumber)+'</strong></td><td>'+esc(r.landlordName||r.agencyName||'—')+'<small>'+esc((r.propertyAddress||'').split('\n')[0])+'</small></td><td style="font-size:.8rem;">'+fd(r.testDate)+'</td><td>'+tot2+'</td><td><span style="color:'+(pct>=90?'var(--green2)':'var(--amber2)')+';">'+pct+'%</span></td><td>'+st+'</td><td style="white-space:nowrap;"><button class="btn btn-ghost btn-xs" onclick="editReport(\''+r.id+'\')" style="margin-right:3px;"><i class="fa-solid fa-pen"></i></button><button class="btn btn-ghost btn-xs" onclick="downloadReportPDF(\''+r.id+'\')" style="margin-right:3px;" title="Download PDF"><i class="fa-solid fa-file-pdf"></i></button><button class="btn btn-ghost btn-xs" onclick="printReportDirect(\''+r.id+'\')" style="margin-right:3px;" title="Print"><i class="fa-solid fa-print"></i></button><button class="btn btn-ghost btn-xs" onclick="emailReport(\''+r.id+'\')" title="Email"><i class="fa-solid fa-envelope"></i></button></td></tr>';
+    tbody.innerHTML+='<tr><td data-label="Ref #"><strong>'+esc(r.refNumber)+'</strong></td><td data-label="Client / Address">'+esc(r.landlordName||r.agencyName||'—')+'<small>'+esc((r.propertyAddress||'').split('\n')[0])+'</small></td><td data-label="Date" style="font-size:.8rem;">'+fd(r.testDate)+'</td><td data-label="Items">'+tot2+'</td><td data-label="Pass%"><span style="color:'+(pct>=90?'var(--green2)':'var(--amber2)')+';">'+pct+'%</span></td><td data-label="Status">'+st+'</td><td data-label="Actions" style="white-space:nowrap;"><button class="btn btn-ghost btn-xs" onclick="editReport(\''+r.id+'\')" style="margin-right:3px;"><i class="fa-solid fa-pen"></i></button><button class="btn btn-ghost btn-xs" onclick="downloadReportPDF(\''+r.id+'\')" style="margin-right:3px;" title="Download PDF instantly (no dialog)"><i class="fa-solid fa-file-pdf"></i></button><button class="btn btn-ghost btn-xs" onclick="printReportDirect(\''+r.id+'\')" style="margin-right:3px;" title="Print"><i class="fa-solid fa-print"></i></button><button class="btn btn-ghost btn-xs" onclick="emailReport(\''+r.id+'\')" title="Email"><i class="fa-solid fa-envelope"></i></button></td></tr>';
   });
   if(!page.length)tbody.innerHTML='<tr><td colspan="7"><div class="empty"><div class="empty-ico">📋</div><div class="empty-title">No reports yet</div></div></td></tr>';
   const pager=ge('myrep-pager');pager.innerHTML='';
@@ -3384,6 +3584,7 @@ function updateSidePanel(){
 
 /* ─── PDF / EMAIL ─── */
 function printCertificate(){
+  if(gv('pat-status')==='draft'){toast('Please complete the certificate before downloading.','warn');return;}
   doPreview();
   setTimeout(()=>{
     if(!apps.length){toast('Add appliances first','warn');return;}
@@ -3409,6 +3610,7 @@ function printCertificate(){
   },400);
 }
 async function downloadPDF(){
+  if(gv('pat-status')==='draft'){toast('Please complete the certificate before downloading.','warn');return;}
   doPreview();
   await new Promise(r=>setTimeout(r,300));
   const el=ge('cert-pages');
@@ -3470,8 +3672,11 @@ function buildEmail(r){
   const subj=(cfg.emailSubject||DEFS.emailSubject).replace(/{ref}/g,r.refNumber).replace(/{address}/g,addr).replace(/{date}/g,fd(r.testDate)).replace(/{company}/g,cfg.companyName||'');
   return{to:r.emailAddress||cfg.defEmail||'',cc:cfg.smtpCC||'',subj,body};
 }
-function emailClient(){const r=readForm();const{to,cc,subj,body}=buildEmail(r);window.location.href='mailto:'+to+'?cc='+encodeURIComponent(cc)+'&subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);logAudit('email','Email opened',r.refNumber);toast('Email client opened','info');}
-function emailReport(id){const r=reports.find(x=>x.id===id);if(!r)return;const{to,cc,subj,body}=buildEmail(r);window.location.href='mailto:'+to+'?cc='+encodeURIComponent(cc)+'&subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);logAudit('email','Email opened',r.refNumber);}
+function emailClient(){
+  if(gv('pat-status')==='draft'){toast('Please complete the certificate before downloading.','warn');return;}
+  const r=readForm();const{to,cc,subj,body}=buildEmail(r);window.location.href='mailto:'+to+'?cc='+encodeURIComponent(cc)+'&subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);logAudit('email','Email opened',r.refNumber);toast('Email client opened','info');}
+function emailReport(id){const r=reports.find(x=>x.id===id);if(!r)return;
+  if(r.status==='draft'){toast('Please complete the certificate before downloading.','warn');return;}const{to,cc,subj,body}=buildEmail(r);window.location.href='mailto:'+to+'?cc='+encodeURIComponent(cc)+'&subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);logAudit('email','Email opened',r.refNumber);}
 function testSMTP(){
   const testTo=gv('s-test-addr').trim();if(!testTo){toast('Enter a test email address first','warn');return;}
   const st=ge('smtp-st');st.className='smtp-st smtp-idle';st.textContent='⬤ Testing...';
@@ -3721,6 +3926,7 @@ async function buildOffscreenPDF(r){
 }
 async function downloadReportPDF(id){
   const r=reports.find(x=>x.id===id);if(!r){toast('Report not found','error');return;}
+  if(r.status==='draft'){toast('Please complete the certificate before downloading.','warn');return;}
   if(!(r.appliances||[]).length){toast('This report has no appliances yet','warn');return;}
   /* Loads the report into the SAME form/preview fields the Edit page uses, then calls
      the exact same downloadPDF() the Edit page's own button calls -- guaranteed
@@ -3755,6 +3961,7 @@ async function downloadReportPDF(id){
 }
 async function printReportDirect(id){
   const r=reports.find(x=>x.id===id);if(!r){toast('Report not found','error');return;}
+  if(r.status==='draft'){toast('Please complete the certificate before downloading.','warn');return;}
   if(!(r.appliances||[]).length){toast('This report has no appliances yet','warn');return;}
   clearTimeout(saveTimer);
   const prevPageTracker=window._page;
@@ -3780,6 +3987,7 @@ function stab(t){
   document.querySelectorAll('.stab').forEach((el,i)=>el.classList.toggle('on',tabs[i]===t));
   document.querySelectorAll('.spanel').forEach(p=>p.classList.remove('on'));
   const panel=ge('sp-'+t);if(panel)panel.classList.add('on');
+  const msel=ge('stabs-mobile');if(msel)msel.value=t;
   if(t==='users')loadRegisteredUsers();
   if(t==='notice')loadNoticeSettings();
   if(t==='usage'){refreshUsageDisplay();updateThemeBtns();}
@@ -3851,12 +4059,83 @@ function saveFBConfig(){
   toast('Firebase config saved — reloading...','info');
   setTimeout(()=>location.reload(),1500);
 }
+function encodeLogoCanvas(cv){
+  /* PNG is lossless — great for a flat-color logo, expensive for anything with gradients,
+     shadows, or photographic detail (a scanned/photographed logo especially). Most logos
+     don't actually need a transparent background, so: check if this image has any real
+     transparency, and only pay PNG's size cost when it's actually needed. Otherwise JPEG
+     at high quality is dramatically smaller for the exact same visual result. */
+  const ctx=cv.getContext('2d');
+  const data=ctx.getImageData(0,0,cv.width,cv.height).data;
+  let hasTransparency=false;
+  for(let i=3;i<data.length;i+=4){if(data[i]<250){hasTransparency=true;break;}}
+  if(hasTransparency)return cv.toDataURL('image/png');
+  /* Flatten onto white before JPEG-encoding — JPEG has no alpha channel at all, so
+     without this any fully-transparent background would turn solid black instead. */
+  const flat=document.createElement('canvas');flat.width=cv.width;flat.height=cv.height;
+  const fctx=flat.getContext('2d');
+  fctx.fillStyle='#ffffff';fctx.fillRect(0,0,flat.width,flat.height);
+  fctx.drawImage(cv,0,0);
+  return flat.toDataURL('image/jpeg',0.88);
+}
+async function compressExistingImages(){
+  const keys=[['companyLogo','pr-logo'],['patLogo','pr-pat1'],['patLogo2','pr-pat2'],['engineerSignature','pr-sig']];
+  const targets=keys.filter(([k])=>cfg[k]&&cfg[k].length>3000);/* skip empty/already-tiny ones */
+  if(!targets.length){toast('Nothing to optimize — no large images found','info');return;}
+  let beforeTotal=0,afterTotal=0;
+  for(const[key,prevId]of targets){
+    beforeTotal+=cfg[key].length;
+    await new Promise(resolve=>{
+      const img=new Image();
+      img.onload=()=>{
+        const maxDim=400;let w=img.width,h=img.height;
+        if(w>maxDim||h>maxDim){const s=maxDim/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s);}
+        const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        cfg[key]=encodeLogoCanvas(cv);
+        afterTotal+=cfg[key].length;
+        refreshLogoPrev(key,prevId);
+        resolve();
+      };
+      img.onerror=resolve;
+      img.src=cfg[key];
+    });
+  }
+  try{
+    const updates={};targets.forEach(([key])=>updates[key]=cfg[key]);
+    await db.collection('settings').doc('appConfig').update(updates);
+    writeCache(CACHE_KEYS.settings,cfg);
+    const savedKB=Math.round((beforeTotal-afterTotal)*0.75/1024);
+    toast('Optimized '+targets.length+' image(s) — saved ~'+savedKB+'KB','success');
+    doPreview();
+  }catch(e){toast('Saved locally but failed to sync: '+e.message,'error');}
+}
 function uploadLogo(input,key,prevId){
   const file=input.files[0];if(!file)return;
-  if(file.size>800*1024){toast('Image too large — max 800KB','warn');return;}
-  const r=new FileReader();
-  r.onload=e=>{cfg[key]=e.target.result;refreshLogoPrev(key,prevId);doPreview();};
-  r.readAsDataURL(file);
+  if(file.size>4*1024*1024){toast('Image too large — max 4MB','warn');return;}
+  /* This used to store the raw uploaded file as-is, no matter its size, and that same
+     file gets embedded on every single page of every certificate — a large phone-camera
+     photo or unoptimized export here is exactly what turns a normally-tiny vector PDF
+     into hundreds of KB. Resize to the size it's actually ever displayed at and let the
+     canvas re-encode it, before it ever touches Settings. */
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      const maxDim=400;
+      let w=img.width,h=img.height;
+      if(w>maxDim||h>maxDim){const s=maxDim/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s);}
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      cfg[key]=encodeLogoCanvas(cv);
+      refreshLogoPrev(key,prevId);doPreview();
+      const kb=Math.round(cfg[key].length*0.75/1024);
+      toast('Image optimized ('+kb+'KB)','success');
+    };
+    img.onerror=()=>toast('Could not read that image','error');
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 function clearLogo(key,prevId){cfg[key]='';refreshLogoPrev(key,prevId);doPreview();}
 function refreshLogoPrev(key,elId){
