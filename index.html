@@ -3093,10 +3093,9 @@ function draftWouldBeLost(){
 function editReport(id){
   const r=reports.find(x=>x.id===id);if(!r){toast('Report not found','error');return;}
   if(r.status==='completed'){
-    /* Completed certificates are locked to prevent accidental overwrites once issued —
-       only admin can deliberately reopen one, and doing so explicitly reverts it to
-       Draft (so PDF/print/email are blocked again until it's completed a second time). */
-    if(!isAdmin){toast('This certificate is completed and locked. Only an admin can edit it.','warn');return;}
+    /* Any staff member can reopen a completed certificate — it just requires an explicit
+       confirmation first, since doing so reverts it to Draft (blocking PDF/print/email
+       again until it's completed a second time), so it can't happen by accident. */
     if(!confirm('This certificate is marked Complete. Editing it will move it back to Draft status — PDF, Print and Email will be blocked again until it\'s completed a second time. Continue?'))return;
   }
   if(draftWouldBeLost()&&!confirm('You have an unsaved NEW report draft. Opening this report for editing will replace that draft. Continue?'))return;
