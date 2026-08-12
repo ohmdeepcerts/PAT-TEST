@@ -2846,6 +2846,9 @@ function closeBulkModal(){ge('bulk-modal').classList.remove('show');}
 function doBulkAdd(){
   const lines=gv('bulk-txt').split('\n').map(s=>s.trim()).filter(Boolean);
   if(!lines.length){toast('Enter at least one description','warn');return;}
+  /* Same fix as the handwriting scan: drop the empty placeholder row the form always
+     starts with before appending the bulk-pasted rows. */
+  apps=apps.filter(a=>(a.assetId||'').trim()||(a.description||'').trim());
   const startId=gv('bulk-start-id').trim();
   const result=gv('bulk-result')||'Pass';
   const today=gv('pat-date')||new Date().toISOString().split('T')[0];
@@ -3015,6 +3018,11 @@ function renderScanResults(){
 function addScanResults(){
   const chosen=_scanResults.filter(r=>r.include&&(r.assetId.trim()||r.description.trim()));
   if(!chosen.length){toast('Select at least one row','warn');return;}
+  /* New PAT Test always starts with one empty placeholder row for manual typing — if
+     the engineer scans instead of typing, that placeholder never gets filled in or
+     removed, so it silently sits there as a blank first row in the finished certificate.
+     Drop it here before appending the real scanned rows. */
+  apps=apps.filter(a=>(a.assetId||'').trim()||(a.description||'').trim());
   const today=gv('pat-date')||new Date().toISOString().split('T')[0];
   const period=cfg?.defaultRetestPeriod||'12 Months';
   chosen.forEach(r=>{
@@ -3027,10 +3035,24 @@ function addScanResults(){
 
 /* ─── SAVE / DELETE / EDIT ─── */
 function refNum(s){const m=String(s||'').split(' / ')[0].match(/(\d+)\s*$/);return m?parseInt(m[1],10):0;}
+function stripBlankAppRows(){
+  /* Shared safety net — a blank appliance row (most often the form's own starting
+     placeholder left behind after a scan or bulk-add) silently sitting in an otherwise
+     real appliance list, with nothing ever warning about it before it reaches a printed
+     certificate. Used by Save, Download, and Print alike. */
+  const blankCount=apps.filter(a=>!(a.assetId||'').trim()&&!(a.description||'').trim()).length;
+  if(blankCount){
+    apps=apps.filter(a=>(a.assetId||'').trim()||(a.description||'').trim());
+    renderApps();updateSidePanel();
+    toast('Removed '+blankCount+' empty appliance row'+(blankCount>1?'s':'')+' before continuing','warn');
+  }
+  return blankCount;
+}
 async function saveReport(complete){
   const refVal=gv('pat-ref');
   if(!refVal.trim()){toast('Reference number is required','warn');return;}
   if(!gv('pat-date')){toast('Test date is required','warn');return;}
+  stripBlankAppRows();
   if(complete&&!apps.some(a=>(a.description||'').trim()||(a.assetId||'').trim())){toast('Add at least one appliance before completing','warn');return;}
   sync('busy','Saving...');
   const idVal=gv('report-id'),newId=idVal||Date.now().toString();
@@ -3584,6 +3606,7 @@ function updateSidePanel(){
 /* ─── PDF / EMAIL ─── */
 function printCertificate(){
   if(gv('pat-status')==='draft'){toast('Please complete the certificate before downloading.','warn');return;}
+  stripBlankAppRows();
   doPreview();
   setTimeout(()=>{
     if(!apps.length){toast('Add appliances first','warn');return;}
@@ -3610,6 +3633,7 @@ function printCertificate(){
 }
 async function downloadPDF(){
   if(gv('pat-status')==='draft'){toast('Please complete the certificate before downloading.','warn');return;}
+  stripBlankAppRows();
   doPreview();
   await new Promise(r=>setTimeout(r,300));
   const el=ge('cert-pages');
