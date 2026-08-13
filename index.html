@@ -3035,6 +3035,23 @@ function addScanResults(){
 
 /* ─── SAVE / DELETE / EDIT ─── */
 function refNum(s){const m=String(s||'').split(' / ')[0].match(/(\d+)\s*$/);return m?parseInt(m[1],10):0;}
+function syncRefApplianceCount(){
+  /* Editing an EXISTING report locks the ref field (fillForm sets dataset.manual=true)
+     so a deliberately custom ref doesn't get clobbered by address edits — but that same
+     lock means the appliance count baked into the ref goes stale if rows are added or
+     removed during that edit, since updateRef() then refuses to touch it at all. The
+     count is a factual thing, not a stylistic override, so it always gets corrected
+     here regardless of that lock, right before anything gets finalized. */
+  if(!currentBaseRef)return false;
+  const ref=gv('pat-ref')||'';
+  const parts=ref.split(' / ');
+  const numberPart=(parts[0]||'').trim();
+  const addrPart=parts.slice(1).join(' / ').trim();
+  const correctNumber=currentBaseRef+'0'+String(apps.length);
+  if(numberPart===correctNumber)return false;
+  sv('pat-ref',addrPart?correctNumber+' / '+addrPart:correctNumber);
+  return true;
+}
 function stripBlankAppRows(){
   /* Shared safety net — a blank appliance row (most often the form's own starting
      placeholder left behind after a scan or bulk-add) silently sitting in an otherwise
@@ -3049,10 +3066,11 @@ function stripBlankAppRows(){
   return blankCount;
 }
 async function saveReport(complete){
-  const refVal=gv('pat-ref');
-  if(!refVal.trim()){toast('Reference number is required','warn');return;}
+  if(!gv('pat-ref').trim()){toast('Reference number is required','warn');return;}
   if(!gv('pat-date')){toast('Test date is required','warn');return;}
   stripBlankAppRows();
+  if(syncRefApplianceCount())toast('Reference number updated to match '+apps.length+' appliance'+(apps.length!==1?'s':''),'info');
+  const refVal=gv('pat-ref');/* re-read — may have just been corrected above */
   if(complete&&!apps.some(a=>(a.description||'').trim()||(a.assetId||'').trim())){toast('Add at least one appliance before completing','warn');return;}
   sync('busy','Saving...');
   const idVal=gv('report-id'),newId=idVal||Date.now().toString();
@@ -3607,6 +3625,7 @@ function updateSidePanel(){
 function printCertificate(){
   if(gv('pat-status')==='draft'){toast('Please complete the certificate before downloading.','warn');return;}
   stripBlankAppRows();
+  if(syncRefApplianceCount())toast('Reference number corrected to match '+apps.length+' appliance'+(apps.length!==1?'s':''),'info');
   doPreview();
   setTimeout(()=>{
     if(!apps.length){toast('Add appliances first','warn');return;}
@@ -3634,6 +3653,7 @@ function printCertificate(){
 async function downloadPDF(){
   if(gv('pat-status')==='draft'){toast('Please complete the certificate before downloading.','warn');return;}
   stripBlankAppRows();
+  if(syncRefApplianceCount())toast('Reference number corrected to match '+apps.length+' appliance'+(apps.length!==1?'s':''),'info');
   doPreview();
   await new Promise(r=>setTimeout(r,300));
   const el=ge('cert-pages');
