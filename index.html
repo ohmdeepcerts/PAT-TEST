@@ -1238,14 +1238,21 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
         <!-- EMAIL -->
         <div class="spanel" id="sp-email">
           <div class="card">
-            <div class="slbl" style="margin-top:0;">SMTP Configuration</div>
+            <div class="slbl" style="margin-top:0;">Brevo API (Recommended)</div>
+            <div style="background:var(--s2);border:1px solid var(--b2);border-radius:var(--rsm);padding:10px 14px;margin-bottom:12px;font-size:.8rem;color:var(--txt2);">
+              <strong style="color:var(--txt1);">✅ Brevo is the recommended email provider.</strong> No SMTP password needed — just paste your API key below. Certificates are automatically attached as PDF. Free up to 300 emails/day. <a href="https://app.brevo.com/settings/keys/api" target="_blank" style="color:var(--accent);">Get API key →</a>
+            </div>
+            <div class="g2" style="gap:12px;">
+              <div class="fg full"><label>Brevo API Key</label><input type="password" id="s-brevo-key" placeholder="xkeysib-..."><div class="hint">From Brevo dashboard → Your account → SMTP &amp; API → API Keys. Certificates auto-attach as PDF when sending.</div></div>
+              <div class="fg"><label>From Email (must match your Brevo sender)</label><input type="email" id="s-smtp-u"></div>
+              <div class="fg"><label>From Name</label><input type="text" id="s-smtp-n"></div>
+              <div class="fg"><label>Default CC (optional)</label><input type="email" id="s-smtp-cc"></div>
+            </div>
+            <div class="slbl">Legacy SMTP (optional — leave blank if using Brevo)</div>
             <div class="g2" style="gap:12px;">
               <div class="fg"><label>SMTP Host</label><input type="text" id="s-smtp-h" value="smtp.office365.com"><div class="hint">Office 365: smtp.office365.com | Gmail: smtp.gmail.com</div></div>
               <div class="fg"><label>SMTP Port</label><select id="s-smtp-p"><option value="587">587 — STARTTLS (Recommended)</option><option value="465">465 — SSL</option><option value="25">25 — Plain</option></select></div>
-              <div class="fg"><label>From Email</label><input type="email" id="s-smtp-u"></div>
               <div class="fg"><label>Password / App Password</label><input type="password" id="s-smtp-pw"></div>
-              <div class="fg"><label>From Name</label><input type="text" id="s-smtp-n"></div>
-              <div class="fg"><label>Default CC (optional)</label><input type="email" id="s-smtp-cc"></div>
             </div>
             <div class="slbl">Email Templates</div>
             <div class="g2" style="gap:12px;">
@@ -1851,7 +1858,7 @@ const DEFS={
   companyAddress:'127 Woodlands Road, Ilford, Essex, IG1 1JP',
   contactPhone:'02033022024',email:'info@ohmelectricals.co.uk',website:'',vat:'',regNo:'',insurance:'',
   adminEmail:'',companyLogo:'',patLogo:'',patLogo2:'',engineerSignature:'',
-  geminiKey:'',blockedEmails:[],
+  geminiKey:'',brevoKey:'',blockedEmails:[],
   colHeader:'#1e3a5f',colHText:'#ffffff',colRow:'#f8fafc',
   smtpHost:'smtp.office365.com',smtpPort:'587',smtpUser:'',smtpPass:'',smtpName:'',smtpCC:'',
   emailSubject:'Your PAT Certificate — Ref: {ref}',defEmail:'',
@@ -3098,7 +3105,7 @@ async function saveReport(complete){
     const action=complete?'complete':idVal?'update':'create';
     await logAudit(action,complete?'Report completed':idVal?'Draft updated':'Draft created',refVal);
     if(complete){sv('pat-status','completed');syncPdfButtonStates();}
-    if(complete&&cfg.autoSend==='yes')emailClient();
+    if(complete&&cfg.autoSend==='yes')emailClient().catch(()=>{});
     sync('ok');toast(complete?'✅ Report completed':'💾 Draft saved','success');
     if(complete){
       /* Certificate is now locked and finished — auto-generate the PDF straight away
@@ -3715,16 +3722,87 @@ function buildEmail(r){
   const subj=(cfg.emailSubject||DEFS.emailSubject).replace(/{ref}/g,r.refNumber).replace(/{address}/g,addr).replace(/{date}/g,fd(r.testDate)).replace(/{company}/g,cfg.companyName||'');
   return{to:r.emailAddress||cfg.defEmail||'',cc:cfg.smtpCC||'',subj,body};
 }
-function emailClient(){
-  if(gv('pat-status')==='draft'){toast('Please complete the certificate before downloading.','warn');return;}
-  const r=readForm();const{to,cc,subj,body}=buildEmail(r);window.location.href='mailto:'+to+'?cc='+encodeURIComponent(cc)+'&subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);logAudit('email','Email opened',r.refNumber);toast('Email client opened','info');}
-function emailReport(id){const r=reports.find(x=>x.id===id);if(!r)return;
-  if(r.status==='draft'){toast('Please complete the certificate before downloading.','warn');return;}const{to,cc,subj,body}=buildEmail(r);window.location.href='mailto:'+to+'?cc='+encodeURIComponent(cc)+'&subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);logAudit('email','Email opened',r.refNumber);}
-function testSMTP(){
+async function sendViaBrevo(to,cc,subj,htmlBody,pdfBase64,fileName){
+  const key=cfg.brevoKey||'';
+  if(!key){toast('Brevo API key not configured in Settings → Email','error');return false;}
+  const fromEmail=cfg.smtpUser||cfg.email||'';
+  const fromName=cfg.smtpName||cfg.companyName||'PAT Test';
+  const payload={
+    sender:{name:fromName,email:fromEmail},
+    to:[{email:to}],
+    subject:subj,
+    htmlContent:htmlBody.replace(/\n/g,'<br>'),
+    textContent:htmlBody
+  };
+  if(cc)payload.cc=[{email:cc}];
+  if(pdfBase64&&fileName)payload.attachment=[{name:fileName,content:pdfBase64}];
+  try{
+    const res=await fetch('https://api.brevo.com/v3/smtp/email',{
+      method:'POST',
+      headers:{'api-key':key,'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    if(!res.ok){const err=await res.json();throw new Error(err.message||res.status);}
+    return true;
+  }catch(e){toast('Brevo error: '+e.message,'error');return false;}
+}
+async function getPDFBase64ForReport(r){
+  try{
+    const pages=buildCert(r);
+    ge('pdf-overlay').style.display='flex';
+    const pdf=new jspdf.jsPDF({unit:'px',format:'a4',orientation:'portrait'});
+    const W=pdf.internal.pageSize.getWidth(),H=pdf.internal.pageSize.getHeight();
+    for(let i=0;i<pages.length;i++){
+      const canvas=await html2canvas(pages[i],{scale:2,useCORS:true,logging:false,backgroundColor:'#fff'});
+      if(i>0)pdf.addPage();
+      pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,W,H);
+    }
+    ge('pdf-overlay').style.display='none';
+    const raw=pdf.output('datauristring');
+    return raw.split(',')[1];
+  }catch(e){ge('pdf-overlay').style.display='none';return null;}
+}
+async function emailClient(){
+  if(gv('pat-status')==='draft'){toast('Please complete the certificate before emailing.','warn');return;}
+  const r=readForm();
+  const{to,cc,subj,body}=buildEmail(r);
+  if(!to){toast('No recipient email address on this report','warn');return;}
+  if(!cfg.brevoKey){
+    window.location.href='mailto:'+to+'?cc='+encodeURIComponent(cc)+'&subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);
+    logAudit('email','Email client opened (no Brevo)',r.refNumber);toast('Email client opened','info');return;
+  }
+  toast('Generating PDF and sending via Brevo...','info');
+  const pdfB64=await getPDFBase64ForReport(r);
+  const fileName=(r.refNumber||'Certificate').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
+  const ok=await sendViaBrevo(to,cc,subj,body,pdfB64,fileName);
+  if(ok){logAudit('email','Certificate emailed via Brevo',r.refNumber);toast('Certificate sent to '+to+' ✓','success');}
+}
+async function emailReport(id){
+  const r=reports.find(x=>x.id===id);if(!r)return;
+  if(r.status==='draft'){toast('Please complete the certificate before emailing.','warn');return;}
+  const{to,cc,subj,body}=buildEmail(r);
+  if(!to){toast('No recipient email on this report','warn');return;}
+  if(!cfg.brevoKey){
+    window.location.href='mailto:'+to+'?cc='+encodeURIComponent(cc)+'&subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);
+    logAudit('email','Email client opened (no Brevo)',r.refNumber);return;
+  }
+  toast('Generating PDF and sending...','info');
+  const pdfB64=await getPDFBase64ForReport(r);
+  const fileName=(r.refNumber||'Certificate').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
+  const ok=await sendViaBrevo(to,cc,subj,body,pdfB64,fileName);
+  if(ok){logAudit('email','Certificate emailed via Brevo',r.refNumber);toast('Certificate sent to '+to+' ✓','success');}
+}
+async function testSMTP(){
   const testTo=gv('s-test-addr').trim();if(!testTo){toast('Enter a test email address first','warn');return;}
-  const st=ge('smtp-st');st.className='smtp-st smtp-idle';st.textContent='⬤ Testing...';
-  window.location.href='mailto:'+testTo+'?subject='+encodeURIComponent('SMTP Test — DeepFlow PAT')+'&body='+encodeURIComponent('This is a test email from DeepFlow PAT.\n\nIf you received this, your email setup is working correctly.\n\nSent: '+new Date().toLocaleString('en-GB'));
-  setTimeout(()=>{st.className='smtp-st smtp-ok';st.textContent='✓ Email client opened';},600);
+  const st=ge('smtp-st');st.className='smtp-st smtp-idle';st.textContent='⬤ Sending...';
+  if(cfg.brevoKey){
+    const ok=await sendViaBrevo(testTo,'','PAT Test App — Test Email','This is a test email from your PAT Test application.\n\nBrevo integration is working correctly.\n\nSent: '+new Date().toLocaleString('en-GB'),null,null);
+    st.className=ok?'smtp-st smtp-ok':'smtp-st smtp-err';
+    st.textContent=ok?'✓ Sent via Brevo':'✗ Brevo error — check API key';
+  }else{
+    window.location.href='mailto:'+testTo+'?subject='+encodeURIComponent('PAT Test — Email Test')+'&body='+encodeURIComponent('Test email from PAT Test app.\n\nSent: '+new Date().toLocaleString('en-GB'));
+    setTimeout(()=>{st.className='smtp-st smtp-ok';st.textContent='✓ Email client opened';},600);
+  }
 }
 
 /* ─── NOTICE BOARD ─── */
@@ -4054,7 +4132,8 @@ function loadSettingsUI(){
     's-ctitle':'certTitle','s-siglbl':'sigLabel','s-notes':'certNotes',
     's-reg':'regText','s-cop':'cop','s-scheme':'scheme','s-accred':'accred',
     's-fbase':'baseFont','s-fhdr':'hdrFont','s-ftitle':'titleFont','s-fth':'thFont','s-ftd':'tdFont',
-    's-gemini-key':'geminiKey'
+    's-gemini-key':'geminiKey',
+    's-brevo-key':'brevoKey'
   };
   Object.entries(map).forEach(([id,key])=>{const el=ge(id);if(el&&cfg[key]!==undefined)el.value=cfg[key];});
   const colMap={'s-ch':'colHeader','s-cht':'colHText','s-cr':'colRow'};
@@ -4084,7 +4163,8 @@ async function saveSettings(){
     'regText':'s-reg','cop':'s-cop','scheme':'s-scheme','accred':'s-accred',
     'colHeader':'s-ch','colHText':'s-cht','colRow':'s-cr',
     'baseFont':'s-fbase','hdrFont':'s-fhdr','titleFont':'s-ftitle','thFont':'s-fth','tdFont':'s-ftd',
-    'geminiKey':'s-gemini-key'
+    'geminiKey':'s-gemini-key',
+    'brevoKey':'s-brevo-key'
   };
   Object.entries(map).forEach(([key,id])=>{const el=ge(id);if(el)cfg[key]=el.value;});
   try{
