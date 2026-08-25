@@ -829,7 +829,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
         <button class="btn btn-ghost btn-sm" id="btn-print" onclick="printCertificate()"><i class="fa-solid fa-print"></i> Print</button>
         <button class="btn btn-ghost btn-sm" id="btn-email" onclick="emailClient()"><i class="fa-solid fa-envelope"></i> Email</button>
         <button class="btn btn-primary btn-sm" onclick="saveReport(false)"><i class="fa-solid fa-floppy-disk"></i> Draft</button>
-        <button class="btn btn-ghost btn-sm tog-on" id="tog-pdf" onclick="togAct('pdf')" title="Auto PDF download after Complete: ON"><i class="fa-solid fa-file-arrow-down"></i> PDF</button><button class="btn btn-ghost btn-sm tog-on" id="tog-email" onclick="togAct('email')" title="Auto email after Complete: ON"><i class="fa-solid fa-paper-plane"></i> Email</button><button class="btn btn-success btn-sm" onclick="saveReport(true)"><i class="fa-solid fa-check"></i> Complete</button>
+        <button class="btn btn-success btn-sm" onclick="saveReport(true)"><i class="fa-solid fa-check"></i> Complete</button>
       </div>
     </div>
     <!-- TWO COLUMN LAYOUT -->
@@ -1281,10 +1281,21 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
               <div class="fg full"><label>Renewal Reminder Body</label><textarea id="s-rbody" style="height:120px;"></textarea></div>
             </div>
             <div class="slbl">Reminders</div>
-            <div class="g4" style="gap:12px;">
+            <div class="g2" style="gap:12px;">
               <div class="fg"><label>First Reminder (days before)</label><input type="number" id="s-rd1" value="30" min="1"></div>
               <div class="fg"><label>Second Reminder (days before)</label><input type="number" id="s-rd2" value="7" min="1"></div>
-              <div class="fg"><label>Auto-send on Complete</label><select id="s-autosend"><option value="no">No — Manual only</option><option value="yes">Yes — Auto send</option></select></div>
+            </div>
+            <div class="slbl">Automation 
+—
+ On Complete</div>
+            <div style="background:var(--s2);border:1px solid var(--b2);border-radius:var(--rsm);padding:10px 14px;margin-bottom:12px;font-size:.8rem;color:var(--txt2);">Controls what happens automatically when you click <strong style="color:var(--txt1);">Complete</strong> on a PAT report.</div>
+            <div class="g2" style="gap:12px;">
+              <div class="fg"><label>Auto-download PDF on Complete</label><select id="s-autopdf"><option value="yes">Yes — Download PDF automatically</option><option value="no">No — Manual download only</option></select><div class="hint">Downloads the certificate PDF to your device when you mark a job complete</div></div>
+              <div class="fg"><label>Auto-send Email on Complete</label><select id="s-autosend"><option value="yes">Yes — Email certificate automatically</option><option value="no">No — Manual send only</option></select><div class="hint">Emails the certificate to the client when you mark a job complete</div></div>
+            </div>
+            <div class="slbl" style="display:flex;align-items:center;justify-content:space-between;">Email Usage &amp; Plan <button class="btn btn-ghost btn-sm" onclick="renderEmailUsageDash()" style="font-size:.75rem;padding:3px 8px;margin:0;"><i class="fa-solid fa-rotate"></i> Refresh</button></div>
+            <div id="email-usage-dash" style="border:1px solid var(--b2);border-radius:var(--rsm);overflow:hidden;margin-bottom:16px;">
+              <div style="text-align:center;color:var(--txt3);font-size:.8rem;padding:20px;">Open the Email tab to load usage data.</div>
             </div>
             <div class="slbl">Test Email</div>
             <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
@@ -1883,7 +1894,7 @@ const DEFS={
   emailSubject:'Your PAT Certificate — Ref: {ref}',defEmail:'',
   emailBody:'Dear {client},\n\nPlease find attached your PAT (Portable Appliance Testing) certificate — Reference: {ref} — for the property at {address}.\n\nThis test has been carried out in accordance with the Electricity at Work Regulations 1989 and the IET Code of Practice for In-Service Inspection and Testing of Electrical Equipment (5th Edition).\n\nNext recommended retest date: {due}.\n\n----------------------------------------\nCERTIFICATE OWNERSHIP\n----------------------------------------\nThis certificate remains the property of {company} until payment for the associated works has been received in full. {company} reserves the right to recall or invalidate this certificate at any time if payment has not been completed.\n\n----------------------------------------\nCERTIFICATE INTEGRITY\n----------------------------------------\nThis certificate and its template are protected. Forging, altering or reproducing this certificate, or using this template without written permission, is unlawful and may result in legal action.\n\nIf you have any questions, please don\'t hesitate to get in touch.\n\nKind regards,\n{company}\n{phone}\n{email}',
   remindBody:'Dear {client},\n\nFriendly reminder: your PAT certificate for {address} is due for renewal on {due}.\n\nKind regards,\n{company}',
-  remindDays1:'30',remindDays2:'7',autoSend:'no',
+  remindDays1:'30',remindDays2:'7',autoSend:'yes',autoPdf:'yes',
   defaultRetestPeriod:'12 Months',defaultEngineer:'',defaultInstrument:'',
   lastRefNumber:'OHM10000',defaultResult:'Pass',autoSaveSeconds:'15',
   rowsP1:'14',rowsPN:'24',
@@ -3126,16 +3137,17 @@ async function saveReport(complete){
     if(complete){sv('pat-status','completed');syncPdfButtonStates();}
     sync('ok');toast(complete?'✅ Report completed':'💾 Draft saved','success');
     if(complete){
-      await downloadPDF();
-      const em=buildEmail(report);
-      const to=em.to||cfg.smtpUser||'';
-      if(to){
-        toast('Sending certificate email...','info');
-        const pdfB64=await getPDFBase64ForReport(report);
-        const fn=(report.refNumber||'Certificate').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
-        const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fn,em.htmlBody);
-        if(ok){logAudit('email','Certificate auto-emailed',report.refNumber);toast('✉ Certificate emailed to '+to,'success',6000);}
-        else toast('Email failed — check Settings → Email','error');
+      if(cfg.autoPdf!=='no')await downloadPDF();
+      if(cfg.autoSend!=='no'){
+        const em=buildEmail(report);
+        const to=em.to||cfg.smtpUser||'';
+        if(to){
+          toast('Sending certificate email...','info');
+          const pdfB64=await getPDFBase64ForReport(report);
+          const fn=(report.refNumber||'Certificate').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
+          const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fn,em.htmlBody);
+          if(ok){logAudit('email','Certificate auto-emailed',report.refNumber);toast('✉ Certificate emailed to '+to,'success',6000);}else toast('Email failed — check Settings → Email','error');
+        }
       }
       nav('history');initNewForm(true);
     }else{
@@ -3878,7 +3890,7 @@ async function getPDFBase64ForReport(r){
     return btoa(binary);
   }catch(e){console.error('PDF base64 error',e);toast('PDF generation failed: '+e.message,'error');return null;}
 }
-function togAct(key){const k='ohm_auto_'+key;const off=localStorage.getItem(k)==='off';localStorage.setItem(k,off?'on':'off');syncTogActs();}function syncTogActs(){const pOn=localStorage.getItem('ohm_auto_pdf')!=='off';const eOn=localStorage.getItem('ohm_auto_email')!=='off';const pb=ge('tog-pdf');const eb=ge('tog-email');if(pb){pb.className=pb.className.replace(/tog-on|tog-off/g,'').trim();pb.classList.add(pOn?'tog-on':'tog-off');pb.title='Auto PDF download after Complete: '+(pOn?'ON':'OFF');}if(eb){eb.className=eb.className.replace(/tog-on|tog-off/g,'').trim();eb.classList.add(eOn?'tog-on':'tog-off');eb.title='Auto email after Complete: '+(eOn?'ON':'OFF');}}
+
 async function emailClient(){
   if(gv('pat-status')==='draft'){toast('Please complete the certificate before emailing.','warn');return;}
   const r=readForm();
@@ -3902,6 +3914,49 @@ async function emailReport(id){
   const fileName=(r.refNumber||'Certificate').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
   const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fileName,em.htmlBody);
   if(ok){logAudit('email','Certificate emailed',r.refNumber);toast('✓ Certificate sent to '+to,'success');}
+}
+function renderEmailUsageDash(){
+  const el=ge('email-usage-dash');if(!el)return;
+  const now=new Date();const todayStr=now.toISOString().slice(0,10);
+  const weekAgo=new Date(now-7*86400000);const monthStart=new Date(now.getFullYear(),now.getMonth(),1);
+  let todayCnt=0,weekCnt=0,monthCnt=0;
+  auditLog.forEach(e=>{
+    if(e.action!=='email')return;
+    let d;
+    if(e.ts&&e.ts.seconds)d=new Date(e.ts.seconds*1000);
+    else d=new Date(e.ts);
+    if(isNaN(d))return;
+    const ds=d.toISOString().slice(0,10);
+    if(ds===todayStr)todayCnt++;
+    if(d>=weekAgo)weekCnt++;
+    if(d>=monthStart)monthCnt++;
+  });
+  const prov=cfg.emailProvider||'appsscript';
+  const isBrevo=prov==='brevo';
+  const dayLim=isBrevo?300:100;
+  const monLim=isBrevo?9000:null;
+  const provName=isBrevo?'Brevo Free Plan':'Google Apps Script / Gmail';
+  const upgradeUrl=isBrevo?'https://www.brevo.com/pricing/':'https://workspace.google.com/products/gmail/';
+  const upgradeTxt=isBrevo?'Upgrade Brevo \u2197':'Google Workspace \u2197';
+  function bar(used,limit,label){
+    const pct=limit?Math.min(100,Math.round(used/limit*100)):0;
+    const col=pct>=90?'#ef4444':pct>=70?'#f59e0b':'#10b981';
+    const warn=pct>=80?'<div style="font-size:.72rem;color:'+col+';margin-top:3px;">'+(pct>=100?'\u26a0 Limit reached \u2014 emails will fail':'\u26a0 Approaching limit')+'</div>':'';
+    return '<div style="margin-bottom:12px;">'
+      +'<div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px;">'
+      +'<span style="color:var(--txt1);font-weight:600;">'+label+'</span>'
+      +'<span style="color:var(--txt2);">'+used+(limit?' / '+limit:' sent')+'</span></div>'
+      +'<div style="height:6px;background:var(--b2);border-radius:4px;overflow:hidden;">'
+      +'<div style="height:6px;width:'+pct+'%;background:'+col+';border-radius:4px;"></div></div>'+warn+'</div>';
+  }
+  el.innerHTML='<div style="padding:16px 18px;">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">'
+    +'<div style="font-size:.8rem;font-weight:700;color:var(--txt1);">'+provName+'</div>'
+    +'<a href="'+upgradeUrl+'" target="_blank" style="font-size:.72rem;color:#3b82f6;text-decoration:none;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);padding:3px 9px;border-radius:4px;">'+upgradeTxt+'</a></div>'
+    +bar(todayCnt,dayLim,'Today'+(dayLim?(' (limit: '+dayLim+')'):''))
+    +bar(weekCnt,null,'This Week')
+    +(monLim?bar(monthCnt,monLim,'This Month (limit: '+monLim+')'):'')
+    +'<div style="font-size:.71rem;color:var(--txt3);margin-top:10px;border-top:1px solid var(--b2);padding-top:8px;">Counted from audit log \u00b7 Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+'</div></div>';
 }
 async function testSMTP(){
   const testTo=gv('s-test-addr').trim();if(!testTo){toast('Enter a test email address first','warn');return;}
@@ -4216,6 +4271,7 @@ function stab(t){
   const panel=ge('sp-'+t);if(panel)panel.classList.add('on');
   const msel=ge('stabs-mobile');if(msel)msel.value=t;
   if(t==='users')loadRegisteredUsers();
+  if(t==='email')renderEmailUsageDash();
   if(t==='notice')loadNoticeSettings();
   if(t==='usage'){refreshUsageDisplay();updateThemeBtns();}
   if(t==='features')updateThemeBtns();
@@ -4231,7 +4287,7 @@ function loadSettingsUI(){
     's-smtp-pw':'smtpPass','s-smtp-n':'smtpName','s-smtp-cc':'smtpCC',
     's-esubj':'emailSubject','s-defemail':'defEmail',
     's-ebody':'emailBody','s-rbody':'remindBody',
-    's-rd1':'remindDays1','s-rd2':'remindDays2','s-autosend':'autoSend',
+    's-rd1':'remindDays1','s-rd2':'remindDays2','s-autosend':'autoSend','s-autopdf':'autoPdf',
     's-retest':'defaultRetestPeriod','s-eng':'defaultEngineer','s-inst':'defaultInstrument',
     's-ref':'lastRefNumber','s-defres':'defaultResult','s-autosave':'autoSaveSeconds',
     's-rp1':'rowsP1','s-rpn':'rowsPN',
@@ -4264,7 +4320,7 @@ async function saveSettings(){
     'smtpPass':'s-smtp-pw','smtpName':'s-smtp-n','smtpCC':'s-smtp-cc',
     'emailSubject':'s-esubj','defEmail':'s-defemail',
     'emailBody':'s-ebody','remindBody':'s-rbody',
-    'remindDays1':'s-rd1','remindDays2':'s-rd2','autoSend':'s-autosend',
+    'remindDays1':'s-rd1','remindDays2':'s-rd2','autoSend':'s-autosend','autoPdf':'s-autopdf',
     'defaultRetestPeriod':'s-retest','defaultEngineer':'s-eng','defaultInstrument':'s-inst',
     'lastRefNumber':'s-ref','defaultResult':'s-defres','autoSaveSeconds':'s-autosave',
     'rowsP1':'s-rp1','rowsPN':'s-rpn',
