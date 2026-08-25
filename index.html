@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3133,7 +3133,7 @@ async function saveReport(complete){
         toast('Sending certificate email...','info');
         const pdfB64=await getPDFBase64ForReport(report);
         const fn=(report.refNumber||'Certificate').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
-        const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fn);
+        const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fn,em.htmlBody);
         if(ok){logAudit('email','Certificate auto-emailed',report.refNumber);toast('✉ Certificate emailed to '+to,'success',6000);}
         else toast('Email failed — check Settings → Email','error');
       }
@@ -3743,7 +3743,73 @@ function buildEmail(r){
   const e=earliest(r);const due=fd(e?e.toISOString().split('T')[0]:'');
   let body=(cfg.emailBody||DEFS.emailBody).replace(/\\n/g,'\n').replace(/{client}/g,client).replace(/{ref}/g,r.refNumber).replace(/{address}/g,addr).replace(/{due}/g,due).replace(/{company}/g,cfg.companyName||'').replace(/{phone}/g,cfg.contactPhone||'').replace(/{email}/g,cfg.email||'');
   const subj=(cfg.emailSubject||DEFS.emailSubject).replace(/{ref}/g,r.refNumber).replace(/{address}/g,addr).replace(/{date}/g,fd(r.testDate)).replace(/{company}/g,cfg.companyName||'');
-  return{to:r.emailAddress||cfg.defEmail||'',cc:cfg.smtpCC||'',subj,body};
+  return{to:r.emailAddress||cfg.defEmail||'',cc:cfg.smtpCC||'',subj,body,htmlBody:buildEmailHTML(r,client,due)};
+}
+function buildEmailHTML(r,client,due){
+  const co=cfg.companyName||'OHM Electrical Engineering Ltd';
+  const ph=cfg.contactPhone||'';const em=cfg.email||'';
+  const navy='#1e3a5f';const amber='#f59e0b';
+  const apps=r.appliances||[];
+  const total=apps.length;
+  const pass=apps.filter(a=>(a.result||'').toLowerCase()==='pass').length;
+  const fail=total-pass;
+  const hasLandlord=(r.landlordName||'').trim();
+  const hasAgency=(r.agencyName||'').trim();
+  const addrHtml=(r.propertyAddress||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');
+  const landlordRow=hasLandlord?`<tr><td style="padding:10px 18px;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;width:110px;vertical-align:top;white-space:nowrap;">Landlord</td><td style="padding:10px 18px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#1e293b;font-weight:500;">${esc(r.landlordName)}</td></tr>`:'';
+  const agencyRow=hasAgency?`<tr><td style="padding:10px 18px;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;width:110px;vertical-align:top;white-space:nowrap;">Client</td><td style="padding:10px 18px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#1e293b;font-weight:500;">${esc(r.agencyName)}</td></tr>`:'';
+  const failStyle=fail>0?'border:1px solid #ef4444;background:#fef2f2;':'border:1px solid #e2e8f0;';
+  const failColor=fail>0?'#ef4444':'#94a3b8';
+  const contactLine=[ph?'&#128222; '+esc(ph):'',em?'&#9993; '+esc(em):''].filter(Boolean).join('&nbsp;&nbsp;&nbsp;');
+  return`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:28px 12px 40px;background:#eef1f6;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;">
+<tr><td>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;">
+<tr><td style="background:${navy};padding:22px 28px;">
+  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td><div style="font-size:18px;font-weight:700;color:#ffffff;line-height:1.25;">${esc(co)}</div><div style="font-size:10px;color:rgba(255,255,255,.5);letter-spacing:.12em;text-transform:uppercase;margin-top:3px;">Portable Appliance Testing</div></td>
+    <td align="right"><span style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.9);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:5px 11px;border-radius:20px;">&#10003; Certificate Issued</span></td>
+  </tr></table>
+</td></tr>
+<tr><td style="padding:26px 28px 0;">
+  <p style="font-size:15px;color:#475569;margin:0 0 5px 0;">Dear <strong style="color:#1e293b;">${esc(client)}</strong>,</p>
+  <p style="font-size:14px;color:#475569;line-height:1.7;margin:0 0 22px 0;">Please find attached your PAT (Portable Appliance Testing) certificate for the property below. This test was carried out in full accordance with the <em>Electricity at Work Regulations 1989</em> and the IET Code of Practice (5th Edition).</p>
+  <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:16px;">
+    <tr><td colspan="2" style="background:${navy};padding:10px 18px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.6);">Certificate Reference</td><td align="right" style="font-size:14px;font-weight:700;color:#ffffff;letter-spacing:.03em;">${esc(r.refNumber||'')}</td></tr></table></td></tr>
+    <tr><td style="padding:10px 18px;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;width:110px;vertical-align:top;white-space:nowrap;">Property</td><td style="padding:10px 18px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#1e293b;font-weight:500;">${addrHtml}</td></tr>
+    ${landlordRow}${agencyRow}
+    <tr><td style="padding:10px 18px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;white-space:nowrap;">Test Date</td><td style="padding:10px 18px;font-size:13px;color:#1e293b;font-weight:500;">${fd(r.testDate)}</td></tr>
+  </table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:8px;margin-bottom:16px;"><tr><td style="padding:16px 18px;">
+    <table cellpadding="0" cellspacing="0"><tr>
+      <td style="width:42px;height:42px;background:${amber};border-radius:50%;text-align:center;vertical-align:middle;font-size:18px;">&#9888;&#65039;</td>
+      <td style="padding-left:14px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${amber};margin-bottom:3px;">Next Retest Due</div>
+        <div style="font-size:21px;font-weight:700;color:#1e293b;line-height:1;">${due||'—'}</div>
+        <div style="font-size:12px;color:#475569;margin-top:3px;">Please ensure retesting is booked before this date to remain compliant.</div>
+      </td>
+    </tr></table>
+  </td></tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;"><tr>
+    <td width="33%" style="padding-right:4px;"><table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;text-align:center;"><tr><td style="padding:14px 8px;"><div style="font-size:24px;font-weight:700;color:#1e293b;line-height:1;margin-bottom:4px;">${total}</div><div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;">Appliances</div></td></tr></table></td>
+    <td width="33%" style="padding:0 2px;"><table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #10b981;border-radius:8px;background:#ecfdf5;text-align:center;"><tr><td style="padding:14px 8px;"><div style="font-size:24px;font-weight:700;color:#10b981;line-height:1;margin-bottom:4px;">${pass}</div><div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#10b981;">Passed</div></td></tr></table></td>
+    <td width="33%" style="padding-left:4px;"><table width="100%" cellpadding="0" cellspacing="0" style="${failStyle}border-radius:8px;text-align:center;"><tr><td style="padding:14px 8px;"><div style="font-size:24px;font-weight:700;color:${failColor};line-height:1;margin-bottom:4px;">${fail}</div><div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:${failColor};">Failed</div></td></tr></table></td>
+  </tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="border:1px dashed #e2e8f0;border-radius:8px;background:#f8fafc;margin-bottom:22px;"><tr><td style="padding:13px 18px;"><table cellpadding="0" cellspacing="0"><tr><td style="font-size:26px;padding-right:13px;vertical-align:middle;">&#128206;</td><td><div style="font-size:13px;color:#1e293b;font-weight:500;">Certificate PDF is attached to this email</div><div style="font-size:11px;color:#475569;margin-top:2px;">Please save for your records and share with your letting agent if required.</div></td></tr></table></td></tr></table>
+  <p style="font-size:14px;color:#475569;line-height:1.8;margin:0 0 26px 0;">If you have any questions regarding this certificate, please don't hesitate to get in touch.<br><strong style="color:#1e293b;">${esc(co)}</strong><br>${contactLine}</p>
+</td></tr>
+<tr><td style="border-top:1px solid #e2e8f0;"></td></tr>
+<tr><td style="background:#f1f5f9;padding:16px 28px 20px;">
+  <p style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#94a3b8;margin:0 0 5px 0;">Certificate Ownership</p>
+  <p style="font-size:11px;color:#94a3b8;line-height:1.7;margin:0 0 11px 0;">This certificate remains the property of ${esc(co)} until payment for the associated works has been received in full. ${esc(co)} reserves the right to recall or invalidate this certificate at any time if payment has not been completed.</p>
+  <p style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#94a3b8;margin:0 0 5px 0;">Certificate Integrity</p>
+  <p style="font-size:11px;color:#94a3b8;line-height:1.7;margin:0;">Forging, altering or reproducing this certificate, or using this template without written permission, is unlawful and may result in legal action.</p>
+</td></tr>
+</table>
+<p style="text-align:center;margin-top:12px;font-size:11px;color:#94a3b8;line-height:1.8;">${esc(co)}&nbsp;&nbsp;${ph?'&#183;&nbsp;&nbsp;'+esc(ph):''}<br>This email was sent automatically upon certificate completion.</p>
+</td></tr></table></td></tr></table>
+</body></html>`;
 }
 function setEmailProvider(p){
   window._emailProvider=p||'brevo';
@@ -3762,10 +3828,11 @@ function setEmailProvider(p){
 function getActiveBrevoKey(){return (ge('s-brevo-key')?.value||'').trim()||cfg.brevoKey||'';}
 function getActiveScriptUrl(){return (ge('s-apps-script-url')?.value||'').trim()||cfg.appsScriptUrl||'';}
 function getActiveProvider(){return ge('s-email-provider')?.value||cfg.emailProvider||window._emailProvider||'appsscript';}
-async function sendViaAppsScript(to,cc,subj,body,pdfBase64,fileName){
+async function sendViaAppsScript(to,cc,subj,body,pdfBase64,fileName,htmlBody){
   const url=getActiveScriptUrl();
   if(!url){toast('Apps Script URL not set — go to Settings → Email','error');return false;}
   const payload={to,cc:cc||'',subject:subj,body};
+  if(htmlBody)payload.htmlBody=htmlBody;
   if(pdfBase64&&fileName)payload.attachment={content:pdfBase64,name:fileName};
   try{
     await fetch(url,{method:'POST',mode:'no-cors',body:JSON.stringify(payload)});
@@ -3797,9 +3864,9 @@ async function sendViaBrevo(to,cc,subj,htmlBody,pdfBase64,fileName){
     return true;
   }catch(e){toast('Brevo error: '+e.message,'error');return false;}
 }
-async function sendEmail(to,cc,subj,body,pdfBase64,fileName){
+async function sendEmail(to,cc,subj,body,pdfBase64,fileName,htmlBody){
   const provider=getActiveProvider();
-  if(provider==='appsscript'||getActiveScriptUrl())return sendViaAppsScript(to,cc,subj,body,pdfBase64,fileName);
+  if(provider==='appsscript'||getActiveScriptUrl())return sendViaAppsScript(to,cc,subj,body,pdfBase64,fileName,htmlBody);
   return sendViaBrevo(to,cc,subj,body,pdfBase64,fileName);
 }
 async function getPDFBase64ForReport(r){
@@ -3820,7 +3887,7 @@ async function emailClient(){
   toast('Generating PDF and sending...','info');
   const pdfB64=await getPDFBase64ForReport(r);
   const fileName=(r.refNumber||'Certificate').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
-  const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fileName);
+  const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fileName,em.htmlBody);
   if(ok){logAudit('email','Certificate emailed',r.refNumber);toast('✓ Certificate sent to '+to,'success');}
 }
 async function emailReport(id){
@@ -3832,7 +3899,7 @@ async function emailReport(id){
   toast('Generating PDF and sending...','info');
   const pdfB64=await getPDFBase64ForReport(r);
   const fileName=(r.refNumber||'Certificate').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
-  const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fileName);
+  const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fileName,em.htmlBody);
   if(ok){logAudit('email','Certificate emailed',r.refNumber);toast('✓ Certificate sent to '+to,'success');}
 }
 async function testSMTP(){
