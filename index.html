@@ -1244,16 +1244,16 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
               <button class="btn btn-ghost" id="ep-smtp-btn" onclick="setEmailProvider('smtp')" style="flex:1;">SMTP (Legacy)</button>
             </div>
 
-            <input type="hidden" id="s-email-provider" value="brevo">
-            <!-- BREVO PANEL -->
+            <input type="hidden" id="s-email-provider" value="appsscript">
+            <!-- APPS SCRIPT PANEL -->
             <div id="ep-brevo-panel">
               <div style="background:var(--s2);border:1px solid var(--b2);border-radius:var(--rsm);padding:10px 14px;margin-bottom:12px;font-size:.8rem;color:var(--txt2);">
-                <strong style="color:var(--txt1);">Brevo sends emails via API — no SMTP password needed.</strong> Certificates auto-attach as PDF. Free up to 300 emails/day. <a href="https://app.brevo.com/settings/keys/api" target="_blank" style="color:var(--accent);">Get API key →</a>
+                <strong style="color:var(--txt1);">📧 Sends from your Gmail via Google Apps Script.</strong> No domain needed. PDF certificate auto-attaches. Completely free. Emails go to your Gmail inbox — forward to client as normal.
               </div>
               <div class="g2" style="gap:12px;">
-                <div class="fg full"><label>Brevo API Key</label><input type="password" id="s-brevo-key" placeholder="xkeysib-..."><div class="hint">Brevo dashboard → Your name (top-right) → SMTP &amp; API → API Keys tab</div></div>
-                <div class="fg"><label>From Email <span style="color:var(--red2)">*</span></label><input type="email" id="s-smtp-u" placeholder="you@yourdomain.com"><div class="hint">Must be a verified sender in your Brevo account</div></div>
-                <div class="fg"><label>From Name</label><input type="text" id="s-smtp-n"></div>
+                <div class="fg full"><label>Google Apps Script URL</label><input type="text" id="s-apps-script-url" placeholder="https://script.google.com/macros/s/.../exec"><div class="hint">Deploy your Apps Script as a Web App → copy the URL here</div></div>
+                <div class="fg"><label>Send Certificates To (your inbox)</label><input type="email" id="s-smtp-u" placeholder="gbelectricalcertificates@hotmail.com"><div class="hint">Certificates will be emailed here — you forward to client as normal</div></div>
+                <div class="fg"><label>From Name (shown in Gmail sent)</label><input type="text" id="s-smtp-n" placeholder="OHM Electrical Engineering"></div>
                 <div class="fg"><label>Default CC (optional)</label><input type="email" id="s-smtp-cc"></div>
               </div>
             </div>
@@ -1877,7 +1877,7 @@ const DEFS={
   companyAddress:'127 Woodlands Road, Ilford, Essex, IG1 1JP',
   contactPhone:'02033022024',email:'info@ohmelectricals.co.uk',website:'',vat:'',regNo:'',insurance:'',
   adminEmail:'',companyLogo:'',patLogo:'',patLogo2:'',engineerSignature:'',
-  geminiKey:'',brevoKey:'',emailProvider:'brevo',blockedEmails:[],
+  geminiKey:'',brevoKey:'',appsScriptUrl:'',emailProvider:'appsscript',blockedEmails:[],
   colHeader:'#1e3a5f',colHText:'#ffffff',colRow:'#f8fafc',
   smtpHost:'smtp.office365.com',smtpPort:'587',smtpUser:'',smtpPass:'',smtpName:'',smtpCC:'',
   emailSubject:'Your PAT Certificate — Ref: {ref}',defEmail:'',
@@ -3756,7 +3756,18 @@ function setEmailProvider(p){
   if(testBtn)testBtn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Send Test Email'+(isBrevo?' via Brevo':'');
 }
 function getActiveBrevoKey(){return (ge('s-brevo-key')?.value||'').trim()||cfg.brevoKey||'';}
-function getActiveProvider(){return ge('s-email-provider')?.value||cfg.emailProvider||window._emailProvider||'brevo';}
+function getActiveScriptUrl(){return (ge('s-apps-script-url')?.value||'').trim()||cfg.appsScriptUrl||'';}
+function getActiveProvider(){return ge('s-email-provider')?.value||cfg.emailProvider||window._emailProvider||'appsscript';}
+async function sendViaAppsScript(to,cc,subj,body,pdfBase64,fileName){
+  const url=getActiveScriptUrl();
+  if(!url){toast('Apps Script URL not set — go to Settings → Email','error');return false;}
+  const payload={to,cc:cc||'',subject:subj,body};
+  if(pdfBase64&&fileName)payload.attachment={content:pdfBase64,name:fileName};
+  try{
+    await fetch(url,{method:'POST',mode:'no-cors',body:JSON.stringify(payload)});
+    return true;
+  }catch(e){toast('Could not reach Apps Script: '+e.message,'error');return false;}
+}
 async function sendViaBrevo(to,cc,subj,htmlBody,pdfBase64,fileName){
   const key=getActiveBrevoKey();
   if(!key){toast('Brevo API key not configured — go to Settings → Email','error');return false;}
@@ -3782,6 +3793,11 @@ async function sendViaBrevo(to,cc,subj,htmlBody,pdfBase64,fileName){
     return true;
   }catch(e){toast('Brevo error: '+e.message,'error');return false;}
 }
+async function sendEmail(to,cc,subj,body,pdfBase64,fileName){
+  const provider=getActiveProvider();
+  if(provider==='appsscript'||getActiveScriptUrl())return sendViaAppsScript(to,cc,subj,body,pdfBase64,fileName);
+  return sendViaBrevo(to,cc,subj,body,pdfBase64,fileName);
+}
 async function getPDFBase64ForReport(r){
   try{
     const pages=buildCert(r);
@@ -3801,31 +3817,33 @@ async function getPDFBase64ForReport(r){
 async function emailClient(){
   if(gv('pat-status')==='draft'){toast('Please complete the certificate before emailing.','warn');return;}
   const r=readForm();
-  const{to,cc,subj,body}=buildEmail(r);
-  if(!to){toast('No recipient email address on this report — add one in the Property & Client section','warn');return;}
-  toast('Generating PDF and sending via Brevo...','info');
+  const em=buildEmail(r);
+  const to=em.to||cfg.smtpUser||'';
+  if(!to){toast('Add a recipient email in Property & Client section, or set your inbox in Settings → Email','warn');return;}
+  toast('Generating PDF and sending...','info');
   const pdfB64=await getPDFBase64ForReport(r);
   const fileName=(r.refNumber||'Certificate').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
-  const ok=await sendViaBrevo(to,cc,subj,body,pdfB64,fileName);
-  if(ok){logAudit('email','Certificate emailed via Brevo',r.refNumber);toast('✓ Certificate sent to '+to,'success');}
+  const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fileName);
+  if(ok){logAudit('email','Certificate emailed',r.refNumber);toast('✓ Certificate sent to '+to,'success');}
 }
 async function emailReport(id){
   const r=reports.find(x=>x.id===id);if(!r)return;
   if(r.status==='draft'){toast('Please complete the certificate before emailing.','warn');return;}
-  const{to,cc,subj,body}=buildEmail(r);
+  const em=buildEmail(r);
+  const to=em.to||cfg.smtpUser||'';
   if(!to){toast('No recipient email on this report','warn');return;}
   toast('Generating PDF and sending...','info');
   const pdfB64=await getPDFBase64ForReport(r);
   const fileName=(r.refNumber||'Certificate').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
-  const ok=await sendViaBrevo(to,cc,subj,body,pdfB64,fileName);
-  if(ok){logAudit('email','Certificate emailed via Brevo',r.refNumber);toast('✓ Certificate sent to '+to,'success');}
+  const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fileName);
+  if(ok){logAudit('email','Certificate emailed',r.refNumber);toast('✓ Certificate sent to '+to,'success');}
 }
 async function testSMTP(){
   const testTo=gv('s-test-addr').trim();if(!testTo){toast('Enter a test email address first','warn');return;}
-  const st=ge('smtp-st');st.className='smtp-st smtp-idle';st.textContent='⬤ Sending via Brevo...';
-  const ok=await sendViaBrevo(testTo,'','PAT Test App — Email Test','This is a test email from your PAT Test application.\n\nBrevo integration is working correctly.\n\nSent: '+new Date().toLocaleString('en-GB'),null,null);
+  const st=ge('smtp-st');st.className='smtp-st smtp-idle';st.textContent='⬤ Sending...';
+  const ok=await sendEmail(testTo,'','PAT Test App — Email Test','This is a test email from your PAT Test application.\n\nEmail integration is working correctly.\n\nSent: '+new Date().toLocaleString('en-GB'),null,null);
   st.className=ok?'smtp-st smtp-ok':'smtp-st smtp-err';
-  st.textContent=ok?'✓ Sent via Brevo successfully':'✗ Failed — check API key and From Email';
+  st.textContent=ok?'✓ Sent — check your inbox in 30 seconds':'✗ Failed — check Apps Script URL in Settings';
 }
 
 /* ─── NOTICE BOARD ─── */
@@ -4157,6 +4175,7 @@ function loadSettingsUI(){
     's-fbase':'baseFont','s-fhdr':'hdrFont','s-ftitle':'titleFont','s-fth':'thFont','s-ftd':'tdFont',
     's-gemini-key':'geminiKey',
     's-brevo-key':'brevoKey',
+    's-apps-script-url':'appsScriptUrl',
     's-email-provider':'emailProvider'
   };
   Object.entries(map).forEach(([id,key])=>{const el=ge(id);if(el&&cfg[key]!==undefined)el.value=cfg[key];});
@@ -4190,6 +4209,7 @@ async function saveSettings(){
     'baseFont':'s-fbase','hdrFont':'s-fhdr','titleFont':'s-ftitle','thFont':'s-fth','tdFont':'s-ftd',
     'geminiKey':'s-gemini-key',
     'brevoKey':'s-brevo-key',
+    'appsScriptUrl':'s-apps-script-url',
     'emailProvider':'s-email-provider'
   };
   Object.entries(map).forEach(([key,id])=>{const el=ge(id);if(el)cfg[key]=el.value;});
