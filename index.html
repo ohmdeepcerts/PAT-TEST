@@ -3127,13 +3127,15 @@ async function saveReport(complete){
     if(complete&&cfg.autoSend==='yes')emailClient().catch(()=>{});
     sync('ok');toast(complete?'✅ Report completed':'💾 Draft saved','success');
     if(complete){
-      /* Certificate is now locked and finished — auto-generate the PDF straight away
-         so the office doesn't have to re-open it just to get a copy, then clear the
-         form for the next job. downloadPDF() is properly awaitable, so the form-clear
-         + navigation only happens once the file has actually finished generating —
-         no system print dialog involved, matching the plain "PDF" button behaviour. */
       await downloadPDF();
       nav('history');initNewForm(true);
+      setTimeout(()=>{
+        const c=ge('toasts');const el=document.createElement('div');
+        el.className='toast success';
+        el.innerHTML='<span><i class="fa-solid fa-circle-check" style="color:var(--green);"></i></span>PDF downloaded! <button onclick="emailReport(\''+newId+'\');this.closest(\'.toast\').remove()" style="margin-left:8px;padding:3px 12px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:.82rem;font-weight:600;">✉ Email Certificate</button><button onclick="this.closest(\'.toast\').remove()" style="margin-left:6px;padding:3px 8px;border-radius:6px;border:none;background:transparent;color:var(--txt2);cursor:pointer;font-size:.82rem;">Dismiss</button>';
+        c.appendChild(el);
+        setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(40px)';setTimeout(()=>el.remove(),300);},20000);
+      },600);
     }else{
       nav('history');initNewForm(true);
     }
