@@ -3133,7 +3133,7 @@ async function saveReport(complete){
         toast('Sending certificate email...','info');
         const pdfB64=await getPDFBase64ForReport(report);
         const fn=(report.refNumber||'Certificate').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
-        const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fn,em.htmlBody);
+        const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fn,em.htmlBody,em.icsBase64,em.icsName);
         if(ok){logAudit('email','Certificate auto-emailed',report.refNumber);toast('✉ Certificate emailed to '+to,'success',6000);}
         else toast('Email failed — check Settings → Email','error');
       }
@@ -3737,13 +3737,14 @@ async function downloadPDF(){
     if(overlay)overlay.classList.remove('show');
   }
 }
+function buildICS(r,due){const m=(due||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(!m)return'';const dd=m[1].padStart(2,'0');const mm2=m[2].padStart(2,'0');const yy=m[3];const d=yy+mm2+dd;const addr=(r.propertyAddress||'').replace(/\n/g,', ');const ref=r.refNumber||'';const co=cfg.companyName||'OHM Electrical Engineering Ltd';const ph=cfg.contactPhone||'';const em=cfg.email||'';const desc='PAT renewal for '+addr+'. Contact '+co+(ph?' on '+ph:'')+(em?' or '+em:'')+' to rebook.';return'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//PAT Test App//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\nBEGIN:VEVENT\r\nDTSTART;VALUE=DATE:'+d+'\r\nDTEND;VALUE=DATE:'+d+'\r\nSUMMARY:PAT Renewal - '+ref+'\r\nDESCRIPTION:'+desc.replace(/,/g,'\\,').replace(/\n/g,'\\n')+'\r\nLOCATION:'+addr.replace(/,/g,'\\,')+'\r\nSTATUS:CONFIRMED\r\nEND:VEVENT\r\nEND:VCALENDAR';}
 function buildEmail(r){
   const client=r.landlordName||r.agencyName||'Valued Client';
   const addr=(r.propertyAddress||'').replace(/\n/g,', ');
   const e=earliest(r);const due=fd(e?e.toISOString().split('T')[0]:'');
   let body=(cfg.emailBody||DEFS.emailBody).replace(/\\n/g,'\n').replace(/{client}/g,client).replace(/{ref}/g,r.refNumber).replace(/{address}/g,addr).replace(/{due}/g,due).replace(/{company}/g,cfg.companyName||'').replace(/{phone}/g,cfg.contactPhone||'').replace(/{email}/g,cfg.email||'');
   const subj=(cfg.emailSubject||DEFS.emailSubject).replace(/{ref}/g,r.refNumber).replace(/{address}/g,addr).replace(/{date}/g,fd(r.testDate)).replace(/{company}/g,cfg.companyName||'');
-  let htmlBody='';try{htmlBody=buildEmailHTML(r,client,due);toast('HTML email: '+htmlBody.length+' chars','info',4000);}catch(ex){console.error('buildEmailHTML error:',ex);toast('HTML email FAILED: '+ex.message,'error',8000);}return{to:r.emailAddress||cfg.defEmail||'',cc:cfg.smtpCC||'',subj,body,htmlBody};
+  let htmlBody='';try{htmlBody=buildEmailHTML(r,client,due);toast('HTML email: '+htmlBody.length+' chars','info',4000);}catch(ex){console.error('buildEmailHTML error:',ex);toast('HTML email FAILED: '+ex.message,'error',8000);}const icsContent=buildICS(r,due);let icsBase64='';try{icsBase64=icsContent?btoa(icsContent):'';}catch(e){}return{to:r.emailAddress||cfg.defEmail||'',cc:cfg.smtpCC||'',subj,body,htmlBody,icsBase64,icsName:(r.refNumber||'PAT').replace(/[^a-zA-Z0-9_\-]/g,'_')+'_reminder.ics'};
 }
 function buildCalendarRow(r,due){const m=(due||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(!m)return'';const dd=m[1].padStart(2,'0');const mm2=m[2].padStart(2,'0');const yy=m[3];const d=yy+mm2+dd;const addr=(r.propertyAddress||'').replace(/\n/g,', ');const ref=r.refNumber||'';const co=cfg.companyName||'OHM Electrical Engineering Ltd';const ph=cfg.contactPhone||'';const em=cfg.email||'';const desc='PAT renewal for '+addr+'. Contact '+co+(ph?' on '+ph:'')+(em?' or '+em:'')+' to rebook.';const gcalUrl='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('PAT Renewal - '+ref)+'&dates='+yy+mm2+dd+'%2F'+yy+mm2+dd+'&details='+encodeURIComponent(desc)+'&location='+encodeURIComponent(addr);return'<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;"><tr><td style="padding:10px 14px;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:8px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td style="vertical-align:middle;"><div style="font-size:12px;font-weight:700;color:#1e3a5f;white-space:nowrap;">&#128197; Add a Reminder</div><div style="font-size:10px;color:#64748b;margin-top:1px;white-space:nowrap;">Tap to save your retest date to your calendar</div></td><td align="right" style="padding-left:10px;white-space:nowrap;vertical-align:middle;"><a href="'+gcalUrl+'" target="_blank" style="display:inline-block;background:#1e3a5f;color:#ffffff;font-size:11px;font-weight:700;padding:8px 16px;border-radius:6px;text-decoration:none;">Add Reminder</a></td></tr></table></td></tr></table>';}
 function buildEmailHTML(r,client,due){  const co=cfg.companyName||'OHM Electrical Engineering Ltd';
@@ -3828,18 +3829,18 @@ function setEmailProvider(p){
 function getActiveBrevoKey(){return (ge('s-brevo-key')?.value||'').trim()||cfg.brevoKey||'';}
 function getActiveScriptUrl(){return (ge('s-apps-script-url')?.value||'').trim()||cfg.appsScriptUrl||'';}
 function getActiveProvider(){return ge('s-email-provider')?.value||cfg.emailProvider||window._emailProvider||'appsscript';}
-async function sendViaAppsScript(to,cc,subj,body,pdfBase64,fileName,htmlBody){
+async function sendViaAppsScript(to,cc,subj,body,pdfBase64,fileName,htmlBody,icsBase64,icsName){
   const url=getActiveScriptUrl();
   if(!url){toast('Apps Script URL not set — go to Settings → Email','error');return false;}
   const payload={to,cc:cc||'',subject:subj,body};
   if(htmlBody)payload.htmlBody=htmlBody;
-  if(pdfBase64&&fileName)payload.attachment={content:pdfBase64,name:fileName};
+  if(pdfBase64&&fileName)payload.attachment={content:pdfBase64,name:fileName};if(icsBase64&&icsName)payload.icsAttachment={content:icsBase64,name:icsName};
   try{
     await fetch(url,{method:'POST',mode:'no-cors',body:JSON.stringify(payload)});
     return true;
   }catch(e){toast('Could not reach Apps Script: '+e.message,'error');return false;}
 }
-async function sendViaBrevo(to,cc,subj,htmlBody,pdfBase64,fileName){
+async function sendViaBrevo(to,cc,subj,htmlBody,pdfBase64,fileName,icsBase64,icsName){
   const key=getActiveBrevoKey();
   if(!key){toast('Brevo API key not configured — go to Settings → Email','error');return false;}
   const fromEmail=(ge('s-smtp-u')?.value||cfg.smtpUser||cfg.email||'').trim();
@@ -3853,7 +3854,7 @@ async function sendViaBrevo(to,cc,subj,htmlBody,pdfBase64,fileName){
     textContent:htmlBody
   };
   if(cc)payload.cc=[{email:cc}];
-  if(pdfBase64&&fileName)payload.attachment=[{name:fileName,content:pdfBase64}];
+  const _atts=[];if(pdfBase64&&fileName)_atts.push({name:fileName,content:pdfBase64});if(icsBase64&&icsName)_atts.push({name:icsName,content:icsBase64});if(_atts.length)payload.attachment=_atts;
   try{
     const res=await fetch('https://api.brevo.com/v3/smtp/email',{
       method:'POST',
@@ -3864,10 +3865,10 @@ async function sendViaBrevo(to,cc,subj,htmlBody,pdfBase64,fileName){
     return true;
   }catch(e){toast('Brevo error: '+e.message,'error');return false;}
 }
-async function sendEmail(to,cc,subj,body,pdfBase64,fileName,htmlBody){
+async function sendEmail(to,cc,subj,body,pdfBase64,fileName,htmlBody,icsBase64,icsName){
   const provider=getActiveProvider();
-  if(provider==='appsscript'||getActiveScriptUrl())return sendViaAppsScript(to,cc,subj,body,pdfBase64,fileName,htmlBody);
-  return sendViaBrevo(to,cc,subj,body,pdfBase64,fileName);
+  if(provider==='appsscript'||getActiveScriptUrl())return sendViaAppsScript(to,cc,subj,body,pdfBase64,fileName,htmlBody,icsBase64,icsName);
+  return sendViaBrevo(to,cc,subj,body,pdfBase64,fileName,icsBase64,icsName);
 }
 async function getPDFBase64ForReport(r){
   try{
@@ -3887,7 +3888,7 @@ async function emailClient(){
   toast('Generating PDF and sending...','info');
   const pdfB64=await getPDFBase64ForReport(r);
   const fileName=(r.refNumber||'Certificate').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
-  const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fileName,em.htmlBody);
+  const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fileName,em.htmlBody,em.icsBase64,em.icsName);
   if(ok){logAudit('email','Certificate emailed',r.refNumber);toast('✓ Certificate sent to '+to,'success');}
 }
 async function emailReport(id){
@@ -3899,7 +3900,7 @@ async function emailReport(id){
   toast('Generating PDF and sending...','info');
   const pdfB64=await getPDFBase64ForReport(r);
   const fileName=(r.refNumber||'Certificate').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
-  const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fileName,em.htmlBody);
+  const ok=await sendEmail(to,em.cc,em.subj,em.body,pdfB64,fileName,em.htmlBody,em.icsBase64,em.icsName);
   if(ok){logAudit('email','Certificate emailed',r.refNumber);toast('✓ Certificate sent to '+to,'success');}
 }
 async function testSMTP(){
