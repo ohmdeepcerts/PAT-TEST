@@ -1238,22 +1238,41 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
         <!-- EMAIL -->
         <div class="spanel" id="sp-email">
           <div class="card">
-            <div class="slbl" style="margin-top:0;">Brevo API (Recommended)</div>
-            <div style="background:var(--s2);border:1px solid var(--b2);border-radius:var(--rsm);padding:10px 14px;margin-bottom:12px;font-size:.8rem;color:var(--txt2);">
-              <strong style="color:var(--txt1);">✅ Brevo is the recommended email provider.</strong> No SMTP password needed — just paste your API key below. Certificates are automatically attached as PDF. Free up to 300 emails/day. <a href="https://app.brevo.com/settings/keys/api" target="_blank" style="color:var(--accent);">Get API key →</a>
+            <div class="slbl" style="margin-top:0;">Email Provider</div>
+            <div style="display:flex;gap:10px;margin-bottom:16px;">
+              <button class="btn" id="ep-brevo-btn" onclick="setEmailProvider('brevo')" style="flex:1;border:2px solid var(--accent);background:var(--accent);color:#fff;">✅ Brevo (Recommended)</button>
+              <button class="btn btn-ghost" id="ep-smtp-btn" onclick="setEmailProvider('smtp')" style="flex:1;">SMTP (Legacy)</button>
             </div>
-            <div class="g2" style="gap:12px;">
-              <div class="fg full"><label>Brevo API Key</label><input type="password" id="s-brevo-key" placeholder="xkeysib-..."><div class="hint">From Brevo dashboard → Your account → SMTP &amp; API → API Keys. Certificates auto-attach as PDF when sending.</div></div>
-              <div class="fg"><label>From Email (must match your Brevo sender)</label><input type="email" id="s-smtp-u"></div>
-              <div class="fg"><label>From Name</label><input type="text" id="s-smtp-n"></div>
-              <div class="fg"><label>Default CC (optional)</label><input type="email" id="s-smtp-cc"></div>
+
+            <input type="hidden" id="s-email-provider" value="brevo">
+            <!-- BREVO PANEL -->
+            <div id="ep-brevo-panel">
+              <div style="background:var(--s2);border:1px solid var(--b2);border-radius:var(--rsm);padding:10px 14px;margin-bottom:12px;font-size:.8rem;color:var(--txt2);">
+                <strong style="color:var(--txt1);">Brevo sends emails via API — no SMTP password needed.</strong> Certificates auto-attach as PDF. Free up to 300 emails/day. <a href="https://app.brevo.com/settings/keys/api" target="_blank" style="color:var(--accent);">Get API key →</a>
+              </div>
+              <div class="g2" style="gap:12px;">
+                <div class="fg full"><label>Brevo API Key</label><input type="password" id="s-brevo-key" placeholder="xkeysib-..."><div class="hint">Brevo dashboard → Your name (top-right) → SMTP &amp; API → API Keys tab</div></div>
+                <div class="fg"><label>From Email <span style="color:var(--red2)">*</span></label><input type="email" id="s-smtp-u" placeholder="you@yourdomain.com"><div class="hint">Must be a verified sender in your Brevo account</div></div>
+                <div class="fg"><label>From Name</label><input type="text" id="s-smtp-n"></div>
+                <div class="fg"><label>Default CC (optional)</label><input type="email" id="s-smtp-cc"></div>
+              </div>
             </div>
-            <div class="slbl">Legacy SMTP (optional — leave blank if using Brevo)</div>
-            <div class="g2" style="gap:12px;">
-              <div class="fg"><label>SMTP Host</label><input type="text" id="s-smtp-h" value="smtp.office365.com"><div class="hint">Office 365: smtp.office365.com | Gmail: smtp.gmail.com</div></div>
-              <div class="fg"><label>SMTP Port</label><select id="s-smtp-p"><option value="587">587 — STARTTLS (Recommended)</option><option value="465">465 — SSL</option><option value="25">25 — Plain</option></select></div>
-              <div class="fg"><label>Password / App Password</label><input type="password" id="s-smtp-pw"></div>
+
+            <!-- SMTP PANEL -->
+            <div id="ep-smtp-panel" style="display:none;">
+              <div style="background:var(--red-dim);border:1px solid rgba(239,68,68,.3);border-radius:var(--rsm);padding:10px 14px;margin-bottom:12px;font-size:.8rem;color:var(--red2);">
+                ⚠️ SMTP stores your email password in the database. Switch to Brevo for better security.
+              </div>
+              <div class="g2" style="gap:12px;">
+                <div class="fg"><label>SMTP Host</label><input type="text" id="s-smtp-h" value="smtp.office365.com"><div class="hint">Office 365: smtp.office365.com | Gmail: smtp.gmail.com</div></div>
+                <div class="fg"><label>SMTP Port</label><select id="s-smtp-p"><option value="587">587 — STARTTLS (Recommended)</option><option value="465">465 — SSL</option><option value="25">25 — Plain</option></select></div>
+                <div class="fg"><label>From Email</label><input type="email" id="s-smtp-u-legacy"></div>
+                <div class="fg"><label>Password / App Password</label><input type="password" id="s-smtp-pw"></div>
+                <div class="fg"><label>From Name</label><input type="text" id="s-smtp-n-legacy"></div>
+                <div class="fg"><label>Default CC (optional)</label><input type="email" id="s-smtp-cc-legacy"></div>
+              </div>
             </div>
+
             <div class="slbl">Email Templates</div>
             <div class="g2" style="gap:12px;">
               <div class="fg"><label>Certificate Subject</label><input type="text" id="s-esubj"><div class="hint">Placeholders: {ref} {address} {date} {company}</div></div>
@@ -1270,7 +1289,7 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
             <div class="slbl">Test Email</div>
             <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
               <input type="email" id="s-test-addr" placeholder="Send test to this address..." style="width:280px;">
-              <button class="btn btn-primary" onclick="testSMTP()"><i class="fa-solid fa-paper-plane"></i> Send Test Email</button>
+              <button class="btn btn-primary" onclick="testSMTP()"><i class="fa-solid fa-paper-plane"></i> Send Test Email via Brevo</button>
               <div id="smtp-st" class="smtp-st smtp-idle">⬤ Not tested</div>
             </div>
           </div>
@@ -1858,7 +1877,7 @@ const DEFS={
   companyAddress:'127 Woodlands Road, Ilford, Essex, IG1 1JP',
   contactPhone:'02033022024',email:'info@ohmelectricals.co.uk',website:'',vat:'',regNo:'',insurance:'',
   adminEmail:'',companyLogo:'',patLogo:'',patLogo2:'',engineerSignature:'',
-  geminiKey:'',brevoKey:'',blockedEmails:[],
+  geminiKey:'',brevoKey:'',emailProvider:'brevo',blockedEmails:[],
   colHeader:'#1e3a5f',colHText:'#ffffff',colRow:'#f8fafc',
   smtpHost:'smtp.office365.com',smtpPort:'587',smtpUser:'',smtpPass:'',smtpName:'',smtpCC:'',
   emailSubject:'Your PAT Certificate — Ref: {ref}',defEmail:'',
@@ -3722,11 +3741,28 @@ function buildEmail(r){
   const subj=(cfg.emailSubject||DEFS.emailSubject).replace(/{ref}/g,r.refNumber).replace(/{address}/g,addr).replace(/{date}/g,fd(r.testDate)).replace(/{company}/g,cfg.companyName||'');
   return{to:r.emailAddress||cfg.defEmail||'',cc:cfg.smtpCC||'',subj,body};
 }
+function setEmailProvider(p){
+  window._emailProvider=p||'brevo';
+  if(ge('s-email-provider'))ge('s-email-provider').value=p;
+  const isBrevo=p==='brevo';
+  if(ge('ep-brevo-panel'))ge('ep-brevo-panel').style.display=isBrevo?'':'none';
+  if(ge('ep-smtp-panel'))ge('ep-smtp-panel').style.display=isBrevo?'none':'';
+  const bb=ge('ep-brevo-btn'),sb=ge('ep-smtp-btn');
+  if(bb&&sb){
+    if(isBrevo){bb.style.cssText='flex:1;border:2px solid var(--accent);background:var(--accent);color:#fff;';sb.style.cssText='flex:1;';}
+    else{sb.style.cssText='flex:1;border:2px solid var(--accent);background:var(--accent);color:#fff;';bb.style.cssText='flex:1;';}
+  }
+  const testBtn=ge('smtp-st')?.previousElementSibling;
+  if(testBtn)testBtn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Send Test Email'+(isBrevo?' via Brevo':'');
+}
+function getActiveBrevoKey(){return (ge('s-brevo-key')?.value||'').trim()||cfg.brevoKey||'';}
+function getActiveProvider(){return ge('s-email-provider')?.value||cfg.emailProvider||window._emailProvider||'brevo';}
 async function sendViaBrevo(to,cc,subj,htmlBody,pdfBase64,fileName){
-  const key=cfg.brevoKey||'';
-  if(!key){toast('Brevo API key not configured in Settings → Email','error');return false;}
-  const fromEmail=cfg.smtpUser||cfg.email||'';
-  const fromName=cfg.smtpName||cfg.companyName||'PAT Test';
+  const key=getActiveBrevoKey();
+  if(!key){toast('Brevo API key not configured — go to Settings → Email','error');return false;}
+  const fromEmail=(ge('s-smtp-u')?.value||cfg.smtpUser||cfg.email||'').trim();
+  const fromName=(ge('s-smtp-n')?.value||cfg.smtpName||cfg.companyName||'PAT Test').trim();
+  if(!fromEmail){toast('Add your From Email address in Settings → Email','error');return false;}
   const payload={
     sender:{name:fromName,email:fromEmail},
     to:[{email:to}],
@@ -3766,43 +3802,30 @@ async function emailClient(){
   if(gv('pat-status')==='draft'){toast('Please complete the certificate before emailing.','warn');return;}
   const r=readForm();
   const{to,cc,subj,body}=buildEmail(r);
-  if(!to){toast('No recipient email address on this report','warn');return;}
-  if(!cfg.brevoKey){
-    window.location.href='mailto:'+to+'?cc='+encodeURIComponent(cc)+'&subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);
-    logAudit('email','Email client opened (no Brevo)',r.refNumber);toast('Email client opened','info');return;
-  }
+  if(!to){toast('No recipient email address on this report — add one in the Property & Client section','warn');return;}
   toast('Generating PDF and sending via Brevo...','info');
   const pdfB64=await getPDFBase64ForReport(r);
   const fileName=(r.refNumber||'Certificate').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
   const ok=await sendViaBrevo(to,cc,subj,body,pdfB64,fileName);
-  if(ok){logAudit('email','Certificate emailed via Brevo',r.refNumber);toast('Certificate sent to '+to+' ✓','success');}
+  if(ok){logAudit('email','Certificate emailed via Brevo',r.refNumber);toast('✓ Certificate sent to '+to,'success');}
 }
 async function emailReport(id){
   const r=reports.find(x=>x.id===id);if(!r)return;
   if(r.status==='draft'){toast('Please complete the certificate before emailing.','warn');return;}
   const{to,cc,subj,body}=buildEmail(r);
   if(!to){toast('No recipient email on this report','warn');return;}
-  if(!cfg.brevoKey){
-    window.location.href='mailto:'+to+'?cc='+encodeURIComponent(cc)+'&subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);
-    logAudit('email','Email client opened (no Brevo)',r.refNumber);return;
-  }
   toast('Generating PDF and sending...','info');
   const pdfB64=await getPDFBase64ForReport(r);
   const fileName=(r.refNumber||'Certificate').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
   const ok=await sendViaBrevo(to,cc,subj,body,pdfB64,fileName);
-  if(ok){logAudit('email','Certificate emailed via Brevo',r.refNumber);toast('Certificate sent to '+to+' ✓','success');}
+  if(ok){logAudit('email','Certificate emailed via Brevo',r.refNumber);toast('✓ Certificate sent to '+to,'success');}
 }
 async function testSMTP(){
   const testTo=gv('s-test-addr').trim();if(!testTo){toast('Enter a test email address first','warn');return;}
-  const st=ge('smtp-st');st.className='smtp-st smtp-idle';st.textContent='⬤ Sending...';
-  if(cfg.brevoKey){
-    const ok=await sendViaBrevo(testTo,'','PAT Test App — Test Email','This is a test email from your PAT Test application.\n\nBrevo integration is working correctly.\n\nSent: '+new Date().toLocaleString('en-GB'),null,null);
-    st.className=ok?'smtp-st smtp-ok':'smtp-st smtp-err';
-    st.textContent=ok?'✓ Sent via Brevo':'✗ Brevo error — check API key';
-  }else{
-    window.location.href='mailto:'+testTo+'?subject='+encodeURIComponent('PAT Test — Email Test')+'&body='+encodeURIComponent('Test email from PAT Test app.\n\nSent: '+new Date().toLocaleString('en-GB'));
-    setTimeout(()=>{st.className='smtp-st smtp-ok';st.textContent='✓ Email client opened';},600);
-  }
+  const st=ge('smtp-st');st.className='smtp-st smtp-idle';st.textContent='⬤ Sending via Brevo...';
+  const ok=await sendViaBrevo(testTo,'','PAT Test App — Email Test','This is a test email from your PAT Test application.\n\nBrevo integration is working correctly.\n\nSent: '+new Date().toLocaleString('en-GB'),null,null);
+  st.className=ok?'smtp-st smtp-ok':'smtp-st smtp-err';
+  st.textContent=ok?'✓ Sent via Brevo successfully':'✗ Failed — check API key and From Email';
 }
 
 /* ─── NOTICE BOARD ─── */
@@ -4133,7 +4156,8 @@ function loadSettingsUI(){
     's-reg':'regText','s-cop':'cop','s-scheme':'scheme','s-accred':'accred',
     's-fbase':'baseFont','s-fhdr':'hdrFont','s-ftitle':'titleFont','s-fth':'thFont','s-ftd':'tdFont',
     's-gemini-key':'geminiKey',
-    's-brevo-key':'brevoKey'
+    's-brevo-key':'brevoKey',
+    's-email-provider':'emailProvider'
   };
   Object.entries(map).forEach(([id,key])=>{const el=ge(id);if(el&&cfg[key]!==undefined)el.value=cfg[key];});
   const colMap={'s-ch':'colHeader','s-cht':'colHText','s-cr':'colRow'};
@@ -4144,6 +4168,7 @@ function loadSettingsUI(){
   Object.entries(fbMap).forEach(([id,key])=>sv(id,fb[key]||''));
   loadNoticeSettings();
   loadFeatureToggles();
+  setEmailProvider(cfg.emailProvider||'brevo');
 }
 async function saveSettings(){
   saveFeatureToggles();
@@ -4164,7 +4189,8 @@ async function saveSettings(){
     'colHeader':'s-ch','colHText':'s-cht','colRow':'s-cr',
     'baseFont':'s-fbase','hdrFont':'s-fhdr','titleFont':'s-ftitle','thFont':'s-fth','tdFont':'s-ftd',
     'geminiKey':'s-gemini-key',
-    'brevoKey':'s-brevo-key'
+    'brevoKey':'s-brevo-key',
+    'emailProvider':'s-email-provider'
   };
   Object.entries(map).forEach(([key,id])=>{const el=ge(id);if(el)cfg[key]=el.value;});
   try{
