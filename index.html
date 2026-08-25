@@ -3743,7 +3743,7 @@ function buildEmail(r){
   const e=earliest(r);const due=fd(e?e.toISOString().split('T')[0]:'');
   let body=(cfg.emailBody||DEFS.emailBody).replace(/\\n/g,'\n').replace(/{client}/g,client).replace(/{ref}/g,r.refNumber).replace(/{address}/g,addr).replace(/{due}/g,due).replace(/{company}/g,cfg.companyName||'').replace(/{phone}/g,cfg.contactPhone||'').replace(/{email}/g,cfg.email||'');
   const subj=(cfg.emailSubject||DEFS.emailSubject).replace(/{ref}/g,r.refNumber).replace(/{address}/g,addr).replace(/{date}/g,fd(r.testDate)).replace(/{company}/g,cfg.companyName||'');
-  return{to:r.emailAddress||cfg.defEmail||'',cc:cfg.smtpCC||'',subj,body,htmlBody:buildEmailHTML(r,client,due)};
+  let htmlBody='';try{htmlBody=buildEmailHTML(r,client,due);}catch(ex){console.error('buildEmailHTML error:',ex);}return{to:r.emailAddress||cfg.defEmail||'',cc:cfg.smtpCC||'',subj,body,htmlBody};
 }
 function buildEmailHTML(r,client,due){
   const co=cfg.companyName||'OHM Electrical Engineering Ltd';
