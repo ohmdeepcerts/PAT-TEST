@@ -3802,19 +3802,12 @@ async function sendEmail(to,cc,subj,body,pdfBase64,fileName){
 }
 async function getPDFBase64ForReport(r){
   try{
-    const pages=buildCert(r);
-    ge('pdf-overlay').style.display='flex';
-    const pdf=new jspdf.jsPDF({unit:'px',format:'a4',orientation:'portrait'});
-    const W=pdf.internal.pageSize.getWidth(),H=pdf.internal.pageSize.getHeight();
-    for(let i=0;i<pages.length;i++){
-      const canvas=await html2canvas(pages[i],{scale:2,useCORS:true,logging:false,backgroundColor:'#fff'});
-      if(i>0)pdf.addPage();
-      pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,W,H);
-    }
-    ge('pdf-overlay').style.display='none';
-    const raw=pdf.output('datauristring');
-    return raw.split(',')[1];
-  }catch(e){ge('pdf-overlay').style.display='none';return null;}
+    const arrayBuf=await buildOffscreenPDF(r);
+    const bytes=new Uint8Array(arrayBuf);
+    let binary='';
+    for(let i=0;i<bytes.byteLength;i++)binary+=String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  }catch(e){console.error('PDF base64 error',e);toast('PDF generation failed: '+e.message,'error');return null;}
 }
 async function emailClient(){
   if(gv('pat-status')==='draft'){toast('Please complete the certificate before emailing.','warn');return;}
