@@ -3931,7 +3931,7 @@ function renderEmailUsageDash(){
     if(d>=weekAgo)weekCnt++;
     if(d>=monthStart)monthCnt++;
   });
-  const prov=cfg.emailProvider||'appsscript';
+  const prov=gv('s-email-provider')||cfg.emailProvider||'appsscript';
   const isBrevo=prov==='brevo';
   const dayLim=isBrevo?300:100;
   const monLim=isBrevo?9000:null;
@@ -4308,7 +4308,7 @@ function loadSettingsUI(){
   Object.entries(fbMap).forEach(([id,key])=>sv(id,fb[key]||''));
   loadNoticeSettings();
   loadFeatureToggles();
-  setEmailProvider(cfg.emailProvider||'brevo');
+  setEmailProvider(cfg.emailProvider||'appsscript');
 }
 async function saveSettings(){
   saveFeatureToggles();
