@@ -3774,15 +3774,24 @@ async function downloadPDF(){
       author:cfg?.companyName||'',
       keywords:'verify:'+certVerifyCode({refNumber:ref,propertyAddress:gv('pat-addr'),testDate:gv('pat-date'),appliances:apps})
     });
+    const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    const pdfScale=isIOS?2:4;
     for(let i=0;i<pageEls.length;i++){
       if(overlayMsg)overlayMsg.textContent='Rendering page '+(i+1)+' of '+pageEls.length+'...';
-      const canvas=await html2canvas(pageEls[i],{scale:4,useCORS:true,backgroundColor:'#ffffff',logging:false,allowTaint:false});
+      const canvas=await html2canvas(pageEls[i],{scale:pdfScale,useCORS:true,backgroundColor:'#ffffff',logging:false,allowTaint:false});
       const imgData=canvas.toDataURL('image/png');
       if(i>0)pdf.addPage('a4','portrait');
       pdf.addImage(imgData,'PNG',0,0,210,297,undefined,'FAST');
     }
-    pdf.save('PAT_'+ref.replace(/[^\w-]/g,'_')+'.pdf');
-    toast('PDF downloaded ✓','success');
+    if(isIOS){
+      const blob=new Blob([pdf.output('arraybuffer')],{type:'application/pdf'});
+      const blobUrl=URL.createObjectURL(blob);
+      window.open(blobUrl,'_blank');
+      toast('PDF ready — tap Share → Save to Files in Safari','info',7000);
+    }else{
+      pdf.save('PAT_'+ref.replace(/[^\w-]/g,'_')+'.pdf');
+      toast('PDF downloaded ✓','success');
+    }
     logAudit('create','PDF downloaded',ref);
   }catch(e){
     console.error('PDF error:',e);
@@ -4242,8 +4251,10 @@ async function buildOffscreenPDF(r){
       author:cfg?.companyName||'',
       keywords:'verify:'+certVerifyCode(r)
     });
+    const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    const pdfScale=isIOS?2:4;
     for(let i=0;i<pageDivs.length;i++){
-      const canvas=await html2canvas(pageDivs[i],{scale:4,useCORS:true,backgroundColor:'#fff',logging:false});
+      const canvas=await html2canvas(pageDivs[i],{scale:pdfScale,useCORS:true,backgroundColor:'#fff',logging:false});
       const imgData=canvas.toDataURL('image/png');
       if(i>0)pdf.addPage('a4','portrait');
       pdf.addImage(imgData,'PNG',0,0,210,297,undefined,'FAST');
