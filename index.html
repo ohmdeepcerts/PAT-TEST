@@ -560,6 +560,22 @@ mark{background:rgba(251,191,36,.3);color:var(--txt);border-radius:2px;padding:1
   /* Ensure no inline fixed widths overflow */
   .ph-acts .btn-sm{min-width:0;}
 }
+/* ── Tablet range: sidebar stays visible but narrower ── */
+@media(min-width:769px) and (max-width:900px){
+  :root{--sw:192px;}
+  #sidebar{
+    position:relative!important;
+    transform:none!important;
+    width:var(--sw)!important;
+    flex-shrink:0!important;
+    box-shadow:none!important;
+  }
+  #mobile-topbar{display:none!important;}
+  #mobile-nav-backdrop{display:none!important;}
+  .nlbl{font-size:.82rem;}
+  .ni{padding:8px 10px;}
+  .sb-logo-wrap{padding:14px 12px;}
+}
 @media(max-width:860px){
   /* Appliance entry table → stacked cards. This is the page engineers actually use in
      the field, so it gets its own slightly wider breakpoint than the nav drawer —
